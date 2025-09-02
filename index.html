@@ -1,40 +1,48 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Responder Cotação</title>
-<style>
-  body{font-family:Inter,Arial,sans-serif;background:#f9fafb;margin:0;padding:20px}
-  .box{max-width:920px;margin:auto;background:#fff;padding:20px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-  h1{margin:0 0 6px;text-align:center}
-  p#info{margin:4px 0 12px;color:#6b7280;text-align:center}
-  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:8px 0 16px}
-  .toolbar select,.toolbar input{padding:8px;border:1px solid #d1d5db;border-radius:6px;font-size:15px}
-  .toolbar .hint{font-size:12px;color:#6b7280}
-  table{width:100%;border-collapse:collapse}
-  th,td{border:1px solid #e5e7eb;padding:8px}
-  th{background:#2563eb;color:#fff}
-  input,button{padding:8px;border:1px solid #d1d5db;border-radius:6px;font-size:15px}
-  input[type=text].money{width:120px;text-align:right}
-  input[type=text]{width:100%}
-  button[type=submit]{width:100%;margin-top:16px;background:#2563eb;color:#fff;cursor:pointer}
-  button[type=submit]:hover{background:#1d4ed8}
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:999}
-  .overlay .card{background:#fff;padding:18px 22px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600}
-  .notice{background:#fff7ed;border:1px solid #fdba74;color:#9a3412;padding:10px;border-radius:8px;margin:10px 0}
-  .success{background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46;padding:10px;border-radius:8px;margin:10px 0}
-  .muted{color:#6b7280;font-size:13px}
-  .actions{display:flex;gap:10px;justify-content:center;margin-top:10px}
-  .btn-secondary{background:#e5e7eb;color:#111827;border:1px solid #d1d5db}
-</style>
+  <meta charset="utf-8">
+  <!-- Bloqueia zoom e abre teclado numérico corretamente no mobile -->
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Responder Cotação</title>
+  <style>
+    :root{
+      --bg:#f9fafb; --card:#fff; --txt:#111827; --muted:#6b7280;
+      --brand:#2563eb; --brand-2:#1d4ed8; --ok:#065f46; --okbg:#ecfdf5; --warn:#9a3412; --warnbg:#fff7ed; --bd:#e5e7eb;
+    }
+    *{box-sizing:border-box}
+    body{font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--txt);margin:0;padding:20px}
+    .box{max-width:980px;margin:auto;background:var(--card);padding:20px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    h1{margin:0 0 8px;text-align:center}
+    p#info{margin:4px 0 16px;color:var(--muted);text-align:center}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:8px 0 16px}
+    .toolbar select,.toolbar input{padding:10px 12px;border:1px solid var(--bd);border-radius:8px;font-size:15px}
+    .toolbar .hint{font-size:12px;color:var(--muted)}
+    table{width:100%;border-collapse:collapse}
+    th,td{border:1px solid var(--bd);padding:10px}
+    th{background:var(--brand);color:#fff}
+    input,button{padding:10px;border:1px solid var(--bd);border-radius:8px;font-size:15px}
+    input.money{width:130px;text-align:right}
+    input[type=text]{width:100%}
+    button[type=submit]{width:100%;margin-top:16px;background:var(--brand);border:none;color:#fff;cursor:pointer}
+    button[type=submit]:hover{background:var(--brand-2)}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:999}
+    .overlay .card{background:#fff;padding:18px 22px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600}
+    .notice{background:var(--warnbg);border:1px solid #fdba74;color:var(--warn);padding:12px;border-radius:10px;margin:10px 0}
+    .success{background:var(--okbg);border:1px solid #6ee7b7;color:var(--ok);padding:12px;border-radius:10px;margin:10px 0}
+    .muted{color:var(--muted);font-size:13px}
+    .actions{display:flex;gap:10px;justify-content:center;margin-top:12px}
+    .btn-secondary{background:#eef2ff;border:1px solid #c7d2fe;color:#1e3a8a;cursor:pointer}
+    .btn-secondary:hover{filter:brightness(.98)}
+    .inline-tip{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+  </style>
 </head>
 <body>
   <div class="box">
     <h1 id="titulo">Responder Cotação</h1>
     <p id="info">Carregando cotações pendentes…</p>
 
-    <!-- Toolbar com fornecedor + senha -->
+    <!-- Toolbar: fornecedor (da planilha), senha e status -->
     <div class="toolbar">
       <label>Fornecedor:
         <select id="selFornecedor"></select>
@@ -42,7 +50,8 @@
       <label>Senha:
         <input id="inputSenha" type="password" inputmode="numeric" pattern="\\d*" placeholder="Digite a senha">
       </label>
-      <span class="hint">Informe o fornecedor e a senha para enviar.</span>
+      <button id="btnValidar" class="btn-secondary" type="button">Validar fornecedor</button>
+      <span class="hint">Selecione o fornecedor e informe a senha para enviar.</span>
     </div>
 
     <div id="statusEnvio" class="success" style="display:none"></div>
@@ -61,6 +70,7 @@
         </thead>
         <tbody id="tbody"></tbody>
       </table>
+      <div class="inline-tip">Dica: no celular, digite apenas números. Ex.: “1234” vira “12,34”.</div>
       <button id="btnEnviar" type="submit">📤 Enviar Respostas</button>
       <div class="actions">
         <button id="btnSolicitarLiberacao" type="button" class="btn-secondary" style="display:none">Solicitar liberação</button>
@@ -73,35 +83,60 @@
 
 <script>
 /* ===================== CONFIG ===================== */
-const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzRQ0GAmz9m_2F-Ms4DzLQWUqQvmlpBxeMpVOPoXvvuRx-VkjqZbSIVGSWTo2-okjvD/exec";
+// TROQUE pela URL do SEU WebApp (do GAS completo)
+const URL_COTACAO = "https://script.google.com/macros/s/SEU_DEPLOY_ID/exec";
 
-// Mostrados no menu
-const FORNECEDORES = ["Fornecedor A", "Fornecedor B", "Fornecedor C"];
-// Senhas client-side (bloqueio leve); o GAS valida de verdade
-const SENHAS = {"Fornecedor A":"1111","Fornecedor B":"2222","Fornecedor C":"3333"};
-
-// 1 hora
+// 1 hora de validade local (ms)
 const VALIDADE_MS = 60 * 60 * 1000;
-// Polling da liberação (ms)
-const POLL_MS = 10000;
 
-/* ============== Estado =============== */
+/* ============== Variáveis de estado =============== */
 let fornecedor = "", empresa = "", painel = "";
 let itens = [];
-let keyBase = "";
+let keyBase = ""; // chave base de storage: cotacao:empresa:fornecedor:painel
 let abriuEm = null;
 let timerId = null;
-let pollId = null;
 
 /* ===================== Utils ====================== */
-const $ = s => document.querySelector(s);
-function normalizeMoneyInputString(v){ return v ? String(v).replace(/\s/g,'').replace(',','.') : ""; }
-function showOverlay(on){ $('#overlay').style.display = on ? 'flex' : 'none'; }
-function disableForm(on){ document.querySelectorAll('#formRespostas input, #formRespostas button[type=submit]').forEach(el=>el.disabled = on); }
-function lsGet(k, def=null){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; }catch{ return def; } }
-function lsSet(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
-function fmtData(dt){ try{ return new Date(dt).toLocaleString('pt-BR'); }catch{ return String(dt); } }
-function toast(msg){ alert(msg); }
+const lsGet = (k, def=null)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def }catch{ return def } };
+const lsSet = (k, v)=>localStorage.setItem(k, JSON.stringify(v));
+const showOverlay = (on)=>{ document.getElementById('overlay').style.display = on ? 'flex' : 'none'; };
+const disableForm = (on)=>{ document.querySelectorAll('#formRespostas input, #formRespostas button[type=submit]').forEach(el=>el.disabled=on); };
+const fmtData = (dt)=>{ try{ return new Date(dt).toLocaleString('pt-BR'); }catch{ return String(dt); } };
+
+/* ====== Máscara BRL: digite números → “12,34” ====== */
+function centsToBR(vCents){
+  const neg = vCents < 0;
+  vCents = Math.abs(vCents);
+  const s = vCents.toString().padStart(3,'0'); // pelo menos 0,00
+  const i = s.slice(0, -2) || '0';
+  const d = s.slice(-2);
+  // milhar com ponto
+  const iFmt = i.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return (neg?'-':'') + iFmt + ',' + d;
+}
+function moneyBindInputs(){
+  document.querySelectorAll('input.money').forEach(inp=>{
+    // guarda centavos internamente; mostra 0,00
+    inp.dataset.cents = inp.dataset.cents || "0";
+    inp.value = centsToBR(parseInt(inp.dataset.cents,10)||0);
+
+    inp.addEventListener('input', ()=>{
+      // mantém apenas dígitos (centavos automáticos)
+      const digits = (inp.value.replace(/\D/g,'') || "0").replace(/^0+(?=\d)/,'');
+      const cents = parseInt(digits,10) || 0;
+      inp.dataset.cents = String(cents);
+      inp.value = centsToBR(cents);
+    });
+
+    // ao focar, seleciona tudo (facilita digitação)
+    inp.addEventListener('focus', ()=>{ setTimeout(()=>inp.select(), 0); });
+  });
+}
+// Converte para string decimal com ponto para o back (ex.: "12.34")
+function centsToDotDecimal(cents){
+  const v = (parseInt(cents,10)||0)/100;
+  return v.toFixed(2);
+}
 
 /* ============== Expiração & Histórico ============== */
 function setOpenTimeIfMissing(){
@@ -110,18 +145,17 @@ function setOpenTimeIfMissing(){
   if(!ts){ ts = Date.now(); lsSet(k, ts); }
   abriuEm = ts;
 }
-function resetOpenTime(){
-  abriuEm = Date.now();
-  lsSet(keyBase + ":openTs", abriuEm);
+function isExpiredLocal(){
+  if(!abriuEm) return false;
+  return (Date.now() - abriuEm) > VALIDADE_MS;
 }
-function isExpired(){ return abriuEm ? (Date.now() - abriuEm) > VALIDADE_MS : false; }
 function renderCountdown(){
-  const el = $('#timer');
+  const el = document.getElementById('timer');
   if(!abriuEm){ el.style.display='none'; return; }
   const left = VALIDADE_MS - (Date.now() - abriuEm);
   if(left <= 0){ el.textContent = "⛔ Cotação expirada."; return; }
   const m = Math.floor(left/60000), s = Math.floor((left%60000)/1000);
-  el.textContent = `⏱️ Tempo restante: ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  el.textContent = `⏱️ Tempo restante (1ª janela): ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   el.style.display = 'block';
 }
 function startCountdown(){
@@ -129,25 +163,25 @@ function startCountdown(){
   renderCountdown();
   timerId = setInterval(()=>{
     renderCountdown();
-    if(isExpired()){
+    if(isExpiredLocal()){
       onExpiredUI();
       clearInterval(timerId);
     }
   }, 1000);
 }
 function onExpiredUI(){
-  const box = $('#avisoExpirado');
+  const box = document.getElementById('avisoExpirado');
   box.style.display = 'block';
-  box.innerHTML = "⛔ O link de cotação <b>expirou</b>. Clique em <b>Solicitar liberação</b> para pedir liberação por 1 hora.";
+  box.innerHTML = "⛔ O link de cotação <b>expirou</b>. Peça a liberação no painel de cotações.";
   disableForm(true);
-  $('#btnSolicitarLiberacao').style.display = 'inline-block';
+  document.getElementById('btnSolicitarLiberacao').style.display = 'inline-block';
 }
 function blockIfAlreadySent(){
   const sent = lsGet(keyBase + ":sent", null);
   if(sent && sent.fornecedor === fornecedor){
-    const info = $('#statusEnvio');
+    const info = document.getElementById('statusEnvio');
     info.style.display = 'block';
-    info.innerHTML = `✅ Respostas já enviadas por <b>${sent.fornecedor}</b> em <b>${fmtData(sent.ts)}</b>. Envio duplicado não permitido.`;
+    info.innerHTML = `✅ Respostas já enviadas por <b>${sent.fornecedor}</b> em <b>${fmtData(sent.ts)}</b>. Envio duplicado não é permitido.`;
     disableForm(true);
     return true;
   }
@@ -160,63 +194,120 @@ function pushHistory(enviados){
   lsSet(k, arr);
 }
 
+/* ============== Autorização do painel ============== */
+async function checkServerLiberation(){
+  try{
+    const url = `${URL_COTACAO}?action=checar_liberacao&empresa=${encodeURIComponent(empresa)}&fornecedor=${encodeURIComponent(fornecedor)}&painel=${encodeURIComponent(painel)}`;
+    const r = await fetch(url);
+    const j = await r.json();
+    return !!(j && j.ok && j.liberado);
+  }catch{ return false; }
+}
+async function ensureAuthorized(){
+  // 1) dentro da 1ª hora? ok
+  if(!isExpiredLocal()) return true;
+  // 2) senão, checa liberação do painel
+  const ok = await checkServerLiberation();
+  if(!ok){ onExpiredUI(); return false; }
+  // liberado via painel → desbloqueia form; oculta aviso
+  document.getElementById('avisoExpirado').style.display = 'none';
+  disableForm(false);
+  document.getElementById('btnSolicitarLiberacao').style.display = 'none';
+  // Timer da 1ª janela já acabou — não mostramos contagem agora (sem horário de expiração do painel)
+  document.getElementById('timer').style.display = 'none';
+  return true;
+}
+
 /* =================== Carregamento =================== */
 window.addEventListener('load', async ()=>{
   const p = new URLSearchParams(location.search);
-  const fornecedorUrl = p.get("fornecedor") || "";
   empresa = p.get("empresa") || "";
   painel  = p.get("painel")  || "";
+  const fornecedorUrl = p.get("fornecedor") || "";
 
-  fornecedor = fornecedorUrl || FORNECEDORES[0];
-  keyBase = `cotacao:${empresa}:${fornecedor}`;
+  // Monta chave base (inclui painel para granularidade)
+  fornecedor = fornecedorUrl || "";
+  keyBase = `cotacao:${empresa}:${fornecedor}:${painel}`;
 
-  // Dropdown
-  const sel = $('#selFornecedor');
-  sel.innerHTML = FORNECEDORES.map(f=>`<option value="${f}">${f}</option>`).join('');
-  sel.value = FORNECEDORES.includes(fornecedor) ? fornecedor : FORNECEDORES[0];
-  sel.addEventListener('change', ()=>{
-    fornecedor = sel.value;
-    keyBase = `cotacao:${empresa}:${fornecedor}`;
-    $('#titulo').textContent = `Responder Cotação – ${fornecedor}`;
-    $('#statusEnvio').style.display = 'none';
-    disableForm(false);
-    if(blockIfAlreadySent()) return;
-    if(isExpired()) onExpiredUI(); else $('#btnSolicitarLiberacao').style.display='none';
-  });
+  await carregarListaFornecedores(fornecedorUrl);
+  document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor || '(selecione)'}`;
 
-  $('#titulo').textContent = `Responder Cotação – ${fornecedor}`;
-
+  // Define/recupera hora de abertura e contador
   setOpenTimeIfMissing();
   startCountdown();
 
+  // Se já enviou, bloqueia
   if(blockIfAlreadySent()) return;
 
-  if(isExpired()){
-    onExpiredUI();
-    // se já pediu antes, retoma polling
-    if(lsGet(keyBase+":libReqTs", null)) startLiberacaoPolling();
-    return;
-  }
+  // Autoriza (janela local ou liberação do painel)
+  const autorizado = await ensureAuthorized();
+  if(!autorizado) return;
 
+  // Carrega itens (status = COMPRAR)
   await carregarItens();
 });
+
+async function carregarListaFornecedores(pref){
+  try{
+    const r = await fetch(`${URL_COTACAO}?action=fornecedores_lista`);
+    const j = await r.json();
+    const sel = document.getElementById('selFornecedor');
+    sel.innerHTML = '';
+
+    const itens = (j && j.ok && Array.isArray(j.items)) ? j.items : [];
+    if(!itens.length){
+      sel.innerHTML = '<option value="">(Sem fornecedores cadastrados)</option>';
+      fornecedor = "";
+      return;
+    }
+    itens.sort((a,b)=>a.fornecedor.localeCompare(b.fornecedor,'pt-BR'));
+    itens.forEach(x=>{
+      const op = document.createElement('option');
+      op.value = x.fornecedor;
+      op.textContent = x.fornecedor;
+      sel.appendChild(op);
+    });
+
+    if(pref && itens.some(x=>x.fornecedor === pref)){
+      sel.value = pref;
+      fornecedor = pref;
+    }else{
+      fornecedor = sel.value;
+    }
+
+    keyBase = `cotacao:${empresa}:${fornecedor}:${painel}`;
+    sel.addEventListener('change', ()=>{
+      fornecedor = sel.value;
+      keyBase = `cotacao:${empresa}:${fornecedor}:${painel}`;
+      document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor}`;
+      document.getElementById('statusEnvio').style.display = 'none';
+      disableForm(false);
+      blockIfAlreadySent();
+    });
+  }catch(e){
+    alert("Erro ao carregar fornecedores: "+e.message);
+  }
+}
 
 async function carregarItens(){
   try{
     const res = await fetch(`${URL_COTACAO}?action=listar_fornecedores&empresa=${encodeURIComponent(empresa)}`);
     const out = await res.json();
     if(!out.ok || !out.items || out.items.length===0){
-      $('#info').textContent = "✅ Nenhuma cotação pendente.";
+      document.getElementById('info').textContent = "✅ Nenhuma cotação pendente.";
       return;
     }
     itens = out.items;
-    render();
-    $('#info').textContent = `Exibindo ${itens.length} cotações pendentes`;
-  }catch(e){ toast("Erro ao carregar itens: " + e.message); }
+    renderTabela();
+    document.getElementById('info').textContent = `Exibindo ${itens.length} itens para cotação`;
+  }catch(e){
+    alert("Erro ao carregar itens: " + e.message);
+  }
 }
 
-function render(){
-  const tb = $('#tbody'); tb.innerHTML = "";
+function renderTabela(){
+  const tb = document.getElementById('tbody');
+  tb.innerHTML = "";
   itens.forEach(it=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -224,117 +315,99 @@ function render(){
       <td>${it.quantidade ?? ''}</td>
       <td>${it.unidade ?? ''}</td>
       <td>
-        <input type="text" class="money" inputmode="decimal" placeholder="0,00"
+        <input type="tel" class="money" inputmode="numeric" pattern="[0-9]*"
+               placeholder="0,00"
                data-rid="${it.rid}" data-codigo="${it.codigo || ''}" data-produto="${it.produto}">
       </td>
       <td><input type="text" class="obs" placeholder="Observação"></td>
     `;
     tb.appendChild(tr);
   });
-  document.querySelectorAll('input.money').forEach(inp=>{
-    inp.addEventListener('input', ()=>{
-      let v = inp.value.replace(/[^\d.,]/g,'');
-      const parts = v.split(/[.,]/);
-      if(parts.length>1){ v = parts.shift() + ',' + parts.join(''); }
-      inp.value = v;
-    });
-  });
+  moneyBindInputs();
 }
 
-/* =================== Solicitar liberação =================== */
-async function solicitarLiberacao(){
+/* ============ Validação de fornecedor (senha) ============ */
+async function validarFornecedor(){
+  const senha = (document.getElementById('inputSenha').value || '').trim();
+  if(!fornecedor){ alert("Selecione o fornecedor."); return false; }
+  if(!senha){ alert("Informe a senha do fornecedor."); return false; }
   try{
-    $('#btnSolicitarLiberacao').disabled = true;
-    $('#btnSolicitarLiberacao').textContent = 'Solicitando…';
-    const payload = { action:'solicitar_liberacao', empresa, fornecedor, painel };
     const res = await fetch(URL_COTACAO, {
-      method:'POST',
-      headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify(payload)
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({ action:"validar_fornecedor", fornecedor, senha })
     });
     const out = await res.json();
-    if(!out.ok){ throw new Error(out.error || 'Falha ao solicitar liberação'); }
-
-    // marca que solicitou e inicia polling
-    lsSet(keyBase + ':libReqTs', Date.now());
-    toast('📨 Solicitação enviada. Aguarde a liberação pela empresa.');
-    startLiberacaoPolling(true);
-  }catch(err){
-    toast('Erro: ' + err.message);
-    $('#btnSolicitarLiberacao').disabled = false;
-    $('#btnSolicitarLiberacao').textContent = 'Solicitar liberação';
+    if(out && out.ok) return true;
+    alert("Senha inválida para o fornecedor selecionado.");
+    return false;
+  }catch(e){
+    alert("Falha ao validar fornecedor: "+e.message);
+    return false;
   }
 }
+document.getElementById('btnValidar').addEventListener('click', async ()=>{
+  const ok = await validarFornecedor();
+  if(ok) alert("✅ Fornecedor validado com sucesso.");
+});
 
-function startLiberacaoPolling(justRequested=false){
-  if(pollId) clearInterval(pollId);
-  // feedback
-  if(justRequested){
-    const box = $('#avisoExpirado');
-    box.style.display = 'block';
-    box.innerHTML = '⏳ Aguardando liberação da empresa… (verificando a cada 10s)';
+/* =================== Solicitar liberação =================== */
+document.getElementById('btnSolicitarLiberacao').addEventListener('click', async ()=>{
+  if(!fornecedor){ alert("Selecione o fornecedor."); return; }
+  try{
+    const res = await fetch(URL_COTACAO, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({ action:"solicitar_liberacao", empresa, fornecedor, painel })
+    });
+    const out = await res.json();
+    if(out && out.ok) alert("📨 Solicitação de liberação enviada. Aguarde aprovação no painel.");
+    else alert("Não foi possível solicitar liberação.");
+  }catch(e){
+    alert("Erro ao solicitar liberação: "+e.message);
   }
-  const check = async ()=>{
-    try{
-      const url = `${URL_COTACAO}?action=checar_liberacao&empresa=${encodeURIComponent(empresa)}&fornecedor=${encodeURIComponent(fornecedor)}&painel=${encodeURIComponent(painel)}`;
-      const r = await fetch(url);
-      const j = await r.json();
-      if(j.ok && j.liberado){
-        applyLiberatedUI();
-        clearInterval(pollId); pollId=null;
-      }
-    }catch{}
-  };
-  check();
-  pollId = setInterval(check, POLL_MS);
-}
+});
 
-function applyLiberatedUI(){
-  // reinicia janela de 1h, libera formulário
-  resetOpenTime();
-  startCountdown();
-  $('#avisoExpirado').style.display='none';
-  $('#btnSolicitarLiberacao').style.display='none';
-  disableForm(false);
-  toast('✅ Liberação concedida. Você tem 1 hora para enviar a cotação.');
-}
-
-/* =================== Envio & senha =================== */
-$('#formRespostas').addEventListener('submit', async (e)=>{
+/* =================== Envio das respostas =================== */
+document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  if(isExpired()){ onExpiredUI(); return; }
 
-  const senhaInformada = ($('#inputSenha').value || '').trim();
-  const senhaEsperada  = SENHAS[fornecedor] || "";
-  if(!senhaInformada || senhaInformada !== senhaEsperada){
-    toast("Senha inválida para o fornecedor selecionado.");
-    return;
-  }
+  // Checa autorização (janela local ou liberação ativa)
+  const autorizado = await ensureAuthorized();
+  if(!autorizado) return;
+
+  // Confere senha/fornecedor
+  const okSenha = await validarFornecedor();
+  if(!okSenha) return;
+
+  // Já enviou?
   if(blockIfAlreadySent()) return;
 
   const linhas = document.querySelectorAll('#tbody tr');
-  if(!linhas.length){ toast('Nada para enviar.'); return; }
+  if(!linhas.length){ alert('Nada para enviar.'); return; }
 
   showOverlay(true);
   let enviados = 0, erros = [];
 
   for(const ln of linhas){
-    const inputPreco = ln.querySelector('input.money');
-    const precoStr   = normalizeMoneyInputString(inputPreco.value);
-    const obs        = ln.querySelector('input.obs').value || "";
-    if(precoStr === "") continue;
+    const priceEl = ln.querySelector('input.money');
+    const cents   = priceEl.dataset.cents || "0";
+    const obs     = ln.querySelector('input.obs').value || "";
+
+    // envia somente se houve preço informado (> 0 centavos)
+    if(parseInt(cents,10) <= 0) continue;
 
     const payload = {
       action: "responder_fornecedor",
-      rid: inputPreco.dataset.rid,
-      produtoCodigo: inputPreco.dataset.codigo,
-      produtoNome: inputPreco.dataset.produto,
+      rid: priceEl.dataset.rid,
+      produtoCodigo: priceEl.dataset.codigo,
+      produtoNome: priceEl.dataset.produto,
       fornecedor,
-      preco: precoStr,
+      senha: (document.getElementById('inputSenha').value || '').trim(),
+      preco: centsToDotDecimal(cents), // "12.34"
       observacoes: obs,
       empresa,
-      painelCodigo: painel,
-      senha: senhaInformada // 🔐 validada pelo GAS
+      painelCodigo: painel
     };
 
     try{
@@ -344,29 +417,29 @@ $('#formRespostas').addEventListener('submit', async (e)=>{
         body: JSON.stringify(payload)
       });
       const out = await res.json();
-      if(out.ok){ enviados += (out.count || 1); }
-      else{ erros.push(out.error || 'Falha desconhecida'); }
-    }catch(err){ erros.push(String(err)); }
+      if(out && out.ok){ enviados += (out.count || 1); }
+      else { erros.push(out && out.error ? out.error : 'Falha desconhecida'); }
+    }catch(err){
+      erros.push(String(err));
+    }
   }
 
   showOverlay(false);
 
   if(erros.length){
-    toast(`⚠️ Enviadas: ${enviados}\nErros: ${erros.length}\n\nPrimeiro erro: ${erros[0]}`);
+    alert(`⚠️ Enviadas: ${enviados}\nErros: ${erros.length}\n\nPrimeiro erro: ${erros[0]}`);
     return;
   }
 
+  // Marca como enviado e registra histórico
   lsSet(keyBase + ":sent", { ts: Date.now(), fornecedor });
   pushHistory(enviados);
 
-  const info = $('#statusEnvio');
+  const info = document.getElementById('statusEnvio');
   info.style.display = 'block';
   info.innerHTML = `✅ ${enviados} respostas registradas por <b>${fornecedor}</b> em <b>${fmtData(Date.now())}</b>.`;
   disableForm(true);
 });
-
-/* ======= Botão “Solicitar liberação” ======= */
-$('#btnSolicitarLiberacao').addEventListener('click', solicitarLiberacao);
 </script>
 </body>
 </html>
