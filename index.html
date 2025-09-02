@@ -14,6 +14,7 @@
     body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:#0b1220;color:var(--txt);padding:10px}
     .shell{max-width:980px;margin:auto}
 
+    /* HEADER */
     .hero{
       border:1px solid rgba(148,163,184,.12);
       border-radius:14px;
@@ -24,6 +25,7 @@
     h1{margin:0;text-align:center;font-weight:800;letter-spacing:.2px;font-size:1.12rem}
     .subtitle{margin:4px 0 0;color:var(--muted);text-align:center;font-size:.88rem}
 
+    /* TOOLBAR (LOGIN) */
     .toolbar{
       margin:8px 0 6px; display:grid; grid-template-columns:1fr 1fr auto; gap:6px;
     }
@@ -39,7 +41,9 @@
       background:linear-gradient(180deg,var(--brand),var(--brand-2)); color:#fff;
       padding:0 12px; font-weight:700; cursor:pointer; white-space:nowrap;
     }
+    .btn.small{height:34px;font-weight:700;padding:0 10px;border-radius:9px}
 
+    /* MINI-BARRA APÓS LOGIN */
     .minibar{
       display:none; align-items:center; justify-content:center; gap:8px;
       background:#0b1220; border:1px solid rgba(148,163,184,.12);
@@ -50,12 +54,20 @@
     .notice{background:var(--warnbg);color:#ffcc66;border:1px solid rgba(245,158,11,.35)}
     .success{background:var(--okbg);color:#34d399;border:1px solid rgba(16,185,129,.35)}
 
+    /* TABS */
+    .tabs{display:flex;gap:6px;margin:8px 0}
+    .tab{border:1px solid rgba(148,163,184,.2);background:#0b1220;color:#cbd5e1;
+      padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700}
+    .tab.active{border-color:rgba(59,130,246,.45);background:linear-gradient(180deg,#0f1a34,#0b1220)}
+
+    /* DESKTOP: tabela com scroll */
     .table-wrap{display:none;width:100%;overflow:auto;border:1px solid var(--bd);border-radius:12px;background:var(--soft)}
     table{width:100%;border-collapse:collapse;min-width:900px}
     th,td{border-bottom:1px solid var(--bd);padding:10px}
     th{position:sticky;top:0;background:#0d1629}
     .money{width:150px;text-align:right}
 
+    /* MOBILE: cards */
     .cards{display:none;gap:10px;margin-top:6px}
     .card{
       background:linear-gradient(180deg,#0e182f,#0b1220);
@@ -71,6 +83,7 @@
 
     .inline-tip{color:var(--muted);font-size:.85rem;text-align:center;margin-top:6px;display:none}
 
+    /* Barra fixa (MOBILE) - somente no fim da página (fixa no rodapé) */
     .fabbar{
       position:fixed;left:0;right:0;bottom:0;padding:8px 10px;
       background:linear-gradient(180deg,transparent,rgba(2,6,23,.92) 18%,rgba(2,6,23,.98));
@@ -82,6 +95,7 @@
       background:linear-gradient(180deg,var(--brand),var(--brand-2));box-shadow:0 10px 24px rgba(37,99,235,.35);cursor:pointer}
     .btn-gray{background:#1f2937;border:1px solid #334155;color:#e5e7eb}
 
+    /* Rodapé DESKTOP no final da página */
     .pagefooter{display:none; margin:14px auto 0; padding:12px; border:1px solid rgba(148,163,184,.12);
       border-radius:12px; background:#0d1629}
     .footer-inner{max-width:980px; margin:auto; display:flex; gap:10px; align-items:center; justify-content:flex-end}
@@ -90,9 +104,19 @@
     .footer-send{background:linear-gradient(180deg,var(--brand),var(--brand-2))}
     .footer-gray{background:#1f2937;border:1px solid #334155}
 
+    /* Overlay */
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:999}
     .overlay .card{background:#0b1220;padding:16px 18px;border-radius:12px;border:1px solid rgba(148,163,184,.18);font-weight:700}
 
+    /* HISTÓRICO */
+    .histWrap{display:none;border:1px solid var(--bd);border-radius:12px;background:#0b1220;padding:10px}
+    .histHead{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+    .muted{color:#94a3b8}
+    .histTable{width:100%;border-collapse:collapse}
+    .histTable th,.histTable td{border-bottom:1px solid var(--bd);padding:8px 10px;font-size:.95rem}
+    .histTable th{background:#0d1629;text-align:left}
+
+    /* Responsividade: mobile usa barra fixa; desktop usa footer no final */
     @media (max-width:639px){ .cards{display:grid} .fabbar{display:block} }
     @media (min-width:640px){ .table-wrap{display:block} .pagefooter{display:block} }
   </style>
@@ -102,6 +126,7 @@
   <h1 id="titulo">Responder Cotação</h1>
   <p id="info" class="subtitle">Faça login para visualizar os itens.</p>
 
+  <!-- LOGIN (compacto) -->
   <div class="toolbar" id="toolbar">
     <div class="field">
       <label>Fornecedor</label>
@@ -114,33 +139,66 @@
     <button id="btnValidar" class="btn" type="button">Validar</button>
   </div>
 
+  <!-- Mini-bar depois do login -->
   <div id="miniBar" class="minibar">✅ Logado</div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="cotacao">Itens</button>
+    <button class="tab" data-tab="historico">Histórico</button>
+  </div>
 
   <div id="statusEnvio" class="success" style="display:none"></div>
   <div id="avisoExpirado" class="notice" style="display:none"></div>
 
-  <div class="table-wrap" id="tableWrap">
-    <table>
-      <thead>
-        <tr><th>Produto</th><th>Qtd</th><th>Unid</th><th>Preço Unit.</th><th>Obs</th></tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
+  <!-- TAB: COTAÇÃO -->
+  <div id="tabCotacao">
+    <!-- LISTA: DESKTOP -->
+    <div class="table-wrap" id="tableWrap">
+      <table>
+        <thead>
+          <tr><th>Produto</th><th>Qtd</th><th>Unid</th><th>Preço Unit.</th><th>Obs</th></tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <!-- LISTA: MOBILE -->
+    <div class="cards" id="cards"></div>
+
+    <p id="dicaMascara" class="inline-tip">Dica: digite apenas números. Ex.: “1234” vira “12,34”.</p>
+
+    <!-- Rodapé DESKTOP — sempre no final da página -->
+    <div class="pagefooter" id="footerDesk">
+      <div class="footer-inner">
+        <div class="time" id="timerDesk">⏱️ 60:00</div>
+        <button id="btnSolicitarLiberacaoDesk" class="footer-btn footer-gray" style="display:none">Solicitar liberação</button>
+        <button id="btnEnviarDesk" class="footer-btn footer-send">📤 Enviar Respostas</button>
+      </div>
+    </div>
   </div>
 
-  <div class="cards" id="cards"></div>
-
-  <p id="dicaMascara" class="inline-tip">Dica: digite apenas números. Ex.: “1234” vira “12,34”.</p>
-
-  <div class="pagefooter" id="footerDesk">
-    <div class="footer-inner">
-      <div class="time" id="timerDesk">⏱️ 60:00</div>
-      <button id="btnSolicitarLiberacaoDesk" class="footer-btn footer-gray" style="display:none">Solicitar liberação</button>
-      <button id="btnEnviarDesk" class="footer-btn footer-send">📤 Enviar Respostas</button>
+  <!-- TAB: HISTÓRICO -->
+  <div id="tabHistorico" class="histWrap">
+    <div class="histHead">
+      <label style="display:flex;align-items:center;gap:6px">
+        <input id="histOnlyCurrent" type="checkbox" checked>
+        <span>Somente desta empresa/fornecedor</span>
+      </label>
+      <button id="btnHistRefresh" class="btn small">Atualizar</button>
+      <button id="btnHistClear" class="btn small" style="background:#334155;border-color:#475569">Limpar histórico (contexto)</button>
+      <span class="muted" id="histCount" style="margin-left:auto"></span>
+    </div>
+    <div id="histEmpty" class="muted" style="display:none">Sem histórico local.</div>
+    <div style="overflow:auto">
+      <table class="histTable" id="histTable">
+        <thead><tr><th>Data</th><th>Fornecedor</th><th>Empresa</th><th>Painel</th><th>Enviados</th></tr></thead>
+        <tbody id="histBody"></tbody>
+      </table>
     </div>
   </div>
 </div>
 
+<!-- Barra fixa (MOBILE) -->
 <div class="fabbar" id="fab">
   <div class="fabinner">
     <div class="time" id="timer">⏱️ 60:00</div>
@@ -149,11 +207,12 @@
   </div>
 </div>
 
+<!-- Overlay -->
 <div class="overlay" id="overlay"><div class="card">⏳ Salvando na planilha…</div></div>
 
 <script>
 /* ===== CONFIG ===== */
-const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzoJWR_CZtaiwMoQ-XrWcVsi5Ww4ACSDH4lvRjMhXZm7VuneTEoBnHMkiK49JSR4Evq/exec";
+const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzjA0wxQDANQERLWRy3gXhWoL30nnVBWO8v5x7L-ktFkgtQYl9m4WncYRPFUqR3hkjw/exec";
 const VALIDADE_MS = 60*60*1000;
 
 /* ===== Estado ===== */
@@ -177,16 +236,6 @@ function centsToBR(c){
   return (neg?'-':'') + i.replace(/\B(?=(\d{3})+(?!\d))/g,'.') + ',' + d;
 }
 function centsToDotDecimal(c){ return ((parseInt(c,10)||0)/100).toFixed(2); }
-function readCentsFromInput(inp){
-  // Confere dataset.cents; se falhar, recalc a partir do valor visível
-  let c = inp?.dataset?.cents;
-  if (c == null || c === '' || isNaN(parseInt(c,10))){
-    const digits=(inp.value||'').toString().replace(/\D/g,'') || '0';
-    c = String(parseInt(digits,10)||0);
-    inp.dataset.cents = c;
-  }
-  return parseInt(c,10)||0;
-}
 function bindMoneyInputs(scope=document){
   scope.querySelectorAll('input.money').forEach(inp=>{
     inp.type='text'; inp.inputMode='decimal'; inp.autocomplete='off'; inp.spellcheck=false;
@@ -199,6 +248,15 @@ function bindMoneyInputs(scope=document){
     });
     inp.addEventListener('focus',()=>setTimeout(()=>inp.select(),0));
   });
+}
+function readCentsFromInput(inp){
+  let c = inp?.dataset?.cents;
+  if (c == null || c === '' || isNaN(parseInt(c,10))){
+    const digits=(inp.value||'').toString().replace(/\D/g,'') || '0';
+    c = String(parseInt(digits,10)||0);
+    inp.dataset.cents = c;
+  }
+  return parseInt(c,10)||0;
 }
 
 /* ===== Sessão / janela ===== */
@@ -216,7 +274,7 @@ function startCountdown(){
   timerId=setInterval(()=>{renderCountdown(); if(isExpiredLocal()){onExpiredUI(); clearInterval(timerId)}},1000);
 }
 
-/* ===== Liberação (opcional) ===== */
+/* ===== Servidor / liberação (opcional) ===== */
 async function checkServerLiberation(){
   try{
     const u=`${URL_COTACAO}?action=checar_liberacao&empresa=${encodeURIComponent(empresa)}&fornecedor=${encodeURIComponent(fornecedor)}&painel=${encodeURIComponent(painel)}`;
@@ -236,7 +294,12 @@ function blockIfAlreadySent(){
   }
   return false;
 }
-function pushHistory(c){const k=keyBase+":history";const a=lsGet(k,[]);a.push({ts:Date.now(),enviados:c,fornecedor});lsSet(k,a);}
+function pushHistory(c){
+  const k=keyBase+":history";
+  const a=lsGet(k,[]);
+  a.push({ts:Date.now(),enviados:c,fornecedor,empresa,painel});
+  lsSet(k,a);
+}
 function disableSendButtons(on){
   qsAll('.btn-enviar, #btnEnviar, #btnEnviarDesk').forEach(b=>b.disabled=on);
 }
@@ -303,7 +366,7 @@ function onExpiredUI(){
   $('avisoExpirado').innerHTML="⛔ Janela expirada. Solicite liberação no painel.";
   $('btnSolicitarLiberacao').style.display='';
   $('btnSolicitarLiberacaoDesk').style.display='';
-  disableSendButtons(true);
+  // Não bloqueia o envio — apenas exibe o aviso
 }
 
 /* ===== Boot ===== */
@@ -315,8 +378,27 @@ window.addEventListener('load', async ()=>{
   $('titulo').textContent=`Responder Cotação — ${fornecedor||'(selecione)'}`;
   const ts=lsGet(keyBase+":openTs",null); if(ts) abriuEm=ts;
   if(isLogged()) await enterLoggedState();
+
+  // abas
+  qsAll('.tab').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
+  $('btnHistRefresh').addEventListener('click',renderHistory);
+  $('histOnlyCurrent').addEventListener('change',renderHistory);
+  $('btnHistClear').addEventListener('click',()=>{
+    if(confirm('Limpar histórico local deste contexto?')){
+      lsDel(keyBase+":history"); renderHistory();
+    }
+  });
+
   window.addEventListener('resize',()=>{ if(isLogged()) { renderList(); $('fab').style.display = isMobile() ? 'block' : 'none'; $('footerDesk').style.display = isMobile() ? 'none' : 'block'; }});
+  renderHistory(); // já prepara a aba histórico
 });
+
+/* ===== Tabs ===== */
+function switchTab(name){
+  qsAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  $('tabCotacao').style.display = (name==='cotacao') ? 'block' : 'none';
+  $('tabHistorico').style.display = (name==='historico') ? 'block' : 'none';
+}
 
 /* ===== Dados ===== */
 async function carregarFornecedores(pref){
@@ -334,24 +416,26 @@ async function carregarFornecedores(pref){
       $('titulo').textContent=`Responder Cotação — ${fornecedor}`; $('miniBar').style.display='none';
       $('info').textContent='Faça login para visualizar os itens.'; $('cards').innerHTML=''; $('tbody').innerHTML='';
       $('dicaMascara').style.display='none'; $('fab').style.display='none'; $('footerDesk').style.display='none'; $('toolbar').style.display='grid';
+      renderHistory(); // atualiza histórico do novo contexto
     });
   }catch(e){ alert('Erro ao carregar fornecedores: '+e.message); }
 }
 async function carregarItens(){
-  if(!isLogged()) return;
   const j=await (await fetch(`${URL_COTACAO}?action=listar_fornecedores&empresa=${encodeURIComponent(empresa)}`)).json();
   if(!j.ok || !Array.isArray(j.items) || !j.items.length){
     $('info').textContent='✅ Nenhuma cotação pendente.'; itens=[];
   } else {
     itens=j.items;
-    // ⚙️ Se empresa não veio na URL, deduz da primeira linha carregada
-    if(!empresa && itens.length && itens[0].empresa){
+    // Deduz empresa, se necessário, mantendo login/abertura
+    if(!empresa && itens[0]?.empresa){
+      const oldKey = keyBase;
       empresa = itens[0].empresa;
       keyBase = `cotacao:${empresa}:${fornecedor}:${painel}`;
-      // Atualiza minibarra se já logado
-      if(isLogged()){
-        $('miniBar').textContent=`✅ ${fornecedor} • ${empresa}`;
-      }
+      const logged = lsGet(oldKey+":logged",null);
+      const ts     = lsGet(oldKey+":openTs",null);
+      if(logged) lsSet(keyBase+":logged",logged);
+      if(ts)     lsSet(keyBase+":openTs",ts);
+      if(logged) $('miniBar').textContent=`✅ ${fornecedor} • ${empresa}`;
     }
     $('info').textContent=`Exibindo ${itens.length} itens para cotação`;
   }
@@ -388,11 +472,9 @@ function wireSolicitarLiberacaoButtons(){
 }
 wireSolicitarLiberacaoButtons();
 
-/* ===== Envio (JSON + confirmação) ===== */
+/* ===== Envio (JSON + confirmação, sem exigir login no momento do envio) ===== */
 function wireEnviarButtons(){
   const handler = async ()=>{
-    if(!isLogged()){ alert('Faça login novamente.'); return; }
-    if(isExpiredLocal()){ const ok=await checkServerLiberation(); if(!ok){ onExpiredUI(); return; } }
     if(blockIfAlreadySent()) return;
 
     const roots = isMobile()
@@ -401,17 +483,16 @@ function wireEnviarButtons(){
 
     if(!roots.length){ alert('Nada para enviar.'); return; }
 
-    // Coleta apenas itens com preço
     const itensPayload = [];
     roots.forEach(root=>{
       const priceEl = root.querySelector('input.money');
-      const cents   = readCentsFromInput(priceEl); // ✅ robusto
+      const cents   = readCentsFromInput(priceEl);
       if(cents <= 0) return;
       itensPayload.push({
         rid:     priceEl.dataset.rid,
         codigo:  priceEl.dataset.codigo,
         produto: priceEl.dataset.produto,
-        preco:   centsToDotDecimal(cents), // "12.34"
+        preco:   ((cents/100).toFixed(2)),
         obs:     (root.querySelector('.obs')?.value)||''
       });
     });
@@ -421,6 +502,9 @@ function wireEnviarButtons(){
       return;
     }
 
+    // garante empresa (URL ou deduzida dos itens)
+    if(!empresa){ empresa = itens.find(x=>x.empresa)?.empresa || ''; }
+
     if(!confirm(`Você deseja enviar ${itensPayload.length} resposta(s) para a planilha?`)) return;
 
     showOverlay(true);
@@ -428,13 +512,7 @@ function wireEnviarButtons(){
       const out = await (await fetch(URL_COTACAO,{
         method:'POST',
         headers:{'Content-Type':'text/plain;charset=utf-8'},
-        body: JSON.stringify({
-          action:'responder_json',
-          fornecedor,
-          empresa,               // ⚙️ já definida (URL ou deduzida dos itens)
-          painelCodigo:painel,
-          itens: itensPayload
-        })
+        body: JSON.stringify({ action:'responder_json', fornecedor, empresa, painelCodigo:painel, itens: itensPayload })
       })).json();
 
       showOverlay(false);
@@ -450,6 +528,7 @@ function wireEnviarButtons(){
       $('statusEnvio').innerHTML =
         `✅ ${out.count || itensPayload.length} respostas registradas por <b>${fornecedor}</b> em <b>${fmtData(Date.now())}</b>.`;
       disableSendButtons(true);
+      renderHistory(); // atualiza a aba histórico
     }catch(e){
       showOverlay(false);
       alert('Erro ao enviar: ' + e.message);
@@ -461,6 +540,56 @@ function wireEnviarButtons(){
   });
 }
 wireEnviarButtons();
+
+/* ===== HISTÓRICO ===== */
+function readHistoryFromKey(k){
+  const arr = lsGet(k,[]);
+  // tenta extrair empresa/fornecedor/painel do nome da chave (compat)
+  const m = k.match(/^cotacao:([^:]*):([^:]*):([^:]*):history$/);
+  const meta = m ? {empresa:m[1], fornecedor:m[2], painel:m[3]} : {};
+  return arr.map(r=>({
+    ts: r.ts, enviados: r.enviados,
+    fornecedor: r.fornecedor || meta.fornecedor || '',
+    empresa: r.empresa || meta.empresa || '',
+    painel: r.painel || meta.painel || ''
+  }));
+}
+function getAllHistory(onlyCurrent=true){
+  if(onlyCurrent){
+    return readHistoryFromKey(keyBase+":history");
+  }
+  let out=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k && k.startsWith('cotacao:') && k.endsWith(':history')){
+      out = out.concat(readHistoryFromKey(k));
+    }
+  }
+  return out.sort((a,b)=>b.ts-a.ts);
+}
+function renderHistory(){
+  const onlyCurrent = $('histOnlyCurrent').checked;
+  const body = $('histBody');
+  const empty = $('histEmpty');
+  body.innerHTML='';
+  const rows = getAllHistory(onlyCurrent);
+  $('histCount').textContent = rows.length ? `${rows.length} registro(s)` : '';
+  if(!rows.length){
+    empty.style.display='block';
+    return;
+  }
+  empty.style.display='none';
+  rows.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${fmtData(r.ts)}</td>
+                    <td>${r.fornecedor||''}</td>
+                    <td>${r.empresa||''}</td>
+                    <td>${r.painel||''}</td>
+                    <td>${r.enviados||0}</td>`;
+    body.appendChild(tr);
+  });
+}
+switchTab('cotacao'); // inicial
 </script>
 </body>
 </html>
