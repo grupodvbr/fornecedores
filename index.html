@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
+  <!-- Bloqueia zoom e puxa teclado numérico -->
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>Responder Cotação</title>
   <style>
@@ -10,21 +11,47 @@
       --brand:#2563eb; --brand-2:#1d4ed8; --ok:#065f46; --okbg:#ecfdf5; --warn:#9a3412; --warnbg:#fff7ed; --bd:#e5e7eb;
     }
     *{box-sizing:border-box}
-    body{font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--txt);margin:0;padding:20px}
-    .box{max-width:980px;margin:auto;background:var(--card);padding:20px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
-    h1{margin:0 0 8px;text-align:center}
+    html,body{height:100%}
+    body{font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--txt);margin:0;padding:16px}
+    .box{max-width:980px;margin:auto;background:var(--card);padding:16px 16px 20px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    h1{margin:0 0 8px;text-align:center;font-size:1.35rem}
     p#info{margin:4px 0 12px;color:var(--muted);text-align:center}
+
     .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:8px 0 10px}
-    .toolbar select,.toolbar input{padding:10px 12px;border:1px solid var(--bd);border-radius:8px;font-size:15px}
+    .toolbar label{display:flex;flex-direction:column;gap:6px}
+    .toolbar select,.toolbar input{padding:12px;border:1px solid var(--bd);border-radius:10px;font-size:16px;height:46px}
     .toolbar .hint{font-size:12px;color:var(--muted);width:100%;text-align:center}
     .badge{display:inline-flex;align-items:center;gap:8px;background:var(--okbg);border:1px solid #6ee7b7;color:var(--ok);padding:8px 10px;border-radius:999px;font-size:14px;margin:6px auto 12px;justify-content:center}
-    table{width:100%;border-collapse:collapse}
-    th,td{border:1px solid var(--bd);padding:10px}
-    th{background:var(--brand);color:#fff}
-    input,button{padding:10px;border:1px solid var(--bd);border-radius:8px;font-size:15px}
-    input.money{width:130px;text-align:right}
+
+    /* Área rolável horizontal da tabela (mobile-friendly) */
+    .table-wrap{
+      width:100%;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      border:1px solid var(--bd);
+      border-radius:10px;
+      background:#fff;
+      position:relative;
+    }
+    /* dica de rolagem em mobile */
+    .scroll-hint{
+      position:absolute; right:6px; top:6px;
+      background:rgba(37,99,235,.95); color:#fff;
+      font-size:12px; padding:4px 8px; border-radius:999px;
+      pointer-events:none; opacity:1; transition:.4s opacity ease;
+    }
+    .scroll-hint.hide{opacity:0}
+
+    table{width:100%;border-collapse:collapse; min-width: 900px;} /* força rolagem se a tela for menor */
+    th,td{border-bottom:1px solid var(--bd);padding:10px}
+    th{background:var(--brand);color:#fff;position:sticky;top:0;z-index:2}
+    td{background:#fff}
+    input,button{padding:12px;border:1px solid var(--bd);border-radius:10px;font-size:16px;height:46px}
+    input.money{width:160px;text-align:right}
     input[type=text]{width:100%}
-    button[type=submit]{width:100%;margin-top:16px;background:var(--brand);border:none;color:#fff;cursor:pointer}
+    button[type=button].btn-secondary{background:#eef2ff;border:1px solid #c7d2fe;color:#1e3a8a;cursor:pointer;height:46px}
+    button[type=button].btn-secondary:hover{filter:brightness(.98)}
+    button[type=submit]{width:100%;margin-top:16px;background:var(--brand);border:none;color:#fff;cursor:pointer;height:48px;font-weight:600;border-radius:12px}
     button[type=submit]:hover{background:var(--brand-2)}
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:999}
     .overlay .card{background:#fff;padding:18px 22px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600}
@@ -32,9 +59,24 @@
     .success{background:var(--okbg);border:1px solid #6ee7b7;color:var(--ok);padding:12px;border-radius:10px;margin:10px 0}
     .muted{color:var(--muted);font-size:13px}
     .actions{display:flex;gap:10px;justify-content:center;margin-top:12px}
-    .btn-secondary{background:#eef2ff;border:1px solid #c7d2fe;color:#1e3a8a;cursor:pointer}
-    .btn-secondary:hover{filter:brightness(.98)}
     .inline-tip{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+
+    /* ===== Mobile tuning ===== */
+    @media (max-width:640px){
+      .box{padding:14px}
+      h1{font-size:1.2rem}
+      .toolbar{gap:8px}
+      .toolbar label{width:100%}
+      .toolbar select,.toolbar input, .btn-secondary{width:100%}
+      .badge{font-size:13px}
+      /* deixar inputs ainda maiores no celular */
+      input, button{height:50px}
+      input.money{width:190px; font-size:18px}
+      /* cabeçalho fixo dentro do scroller e células mais altas */
+      th,td{padding:12px}
+      /* reforça rolagem horizontal */
+      table{min-width: 980px;}
+    }
   </style>
 </head>
 <body>
@@ -61,18 +103,21 @@
     <div id="avisoExpirado" class="notice" style="display:none"></div>
 
     <form id="formRespostas">
-      <table>
-        <thead>
-          <tr>
-            <th>Produto</th>
-            <th>Qtd</th>
-            <th>Unid</th>
-            <th>Preço Unit.</th>
-            <th>Obs</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
+      <div class="table-wrap" id="twrap">
+        <div class="scroll-hint" id="scrollHint">↔️ arraste</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Qtd</th>
+              <th>Unid</th>
+              <th>Preço Unit.</th>
+              <th>Obs</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
       <div class="inline-tip" id="dicaMascara" style="display:none">Dica: no celular, digite apenas números. Ex.: “1234” vira “12,34”.</div>
       <button id="btnEnviar" type="submit" style="display:none">📤 Enviar Respostas</button>
       <div class="actions">
@@ -85,18 +130,18 @@
   <div class="overlay" id="overlay"><div class="card">⏳ Salvando na planilha…</div></div>
 
 <script>
-/* ===================== CONFIG ===================== */
+/* ===== CONFIG ===== */
 const URL_COTACAO = "https://script.google.com/macros/s/AKfycbyq0tGr8djdAoO3i_PfYPdPAWHknqL_hsIiVV28A_YgmpBivbpsbbp3x3E4Vo0M-zqx/exec";
-const VALIDADE_MS = 60 * 60 * 1000; // 1h
+const VALIDADE_MS = 60 * 60 * 1000;
 
-/* ============== Estado =============== */
+/* ===== Estado ===== */
 let fornecedor = "", empresa = "", painel = "";
 let itens = [];
 let keyBase = "";
 let abriuEm = null;
 let timerId = null;
 
-/* ============== Utils =============== */
+/* ===== Utils ===== */
 const lsGet = (k, def=null)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def }catch{ return def } };
 const lsSet = (k, v)=>localStorage.setItem(k, JSON.stringify(v));
 const lsDel = (k)=>localStorage.removeItem(k);
@@ -105,7 +150,7 @@ const disableForm = (on)=>{ document.querySelectorAll('#formRespostas input, #fo
 const fmtData = (dt)=>{ try{ return new Date(dt).toLocaleString('pt-BR'); }catch{ return String(dt); } };
 const showElems = (on, ...ids)=>ids.forEach(id=>document.getElementById(id).style.display = on ? '' : 'none');
 
-/* ====== Máscara: só números → “12,34” ====== */
+/* ===== Money mask (centavos) ===== */
 function centsToBR(vCents){
   const neg = vCents < 0;
   vCents = Math.abs(vCents);
@@ -139,7 +184,7 @@ function centsToDotDecimal(cents){
   return v.toFixed(2);
 }
 
-/* ====== Sessão / janela ====== */
+/* ===== Sessão / janela ===== */
 function setOpenTimeIfMissing(){
   const k = keyBase + ":openTs";
   let ts = lsGet(k, null);
@@ -148,7 +193,6 @@ function setOpenTimeIfMissing(){
 }
 function isExpiredLocal(){ return abriuEm ? (Date.now() - abriuEm) > VALIDADE_MS : false; }
 function isLogged(){ return !!lsGet(keyBase + ":logged", null) && !isExpiredLocal(); }
-
 function renderCountdown(){
   const el = document.getElementById('timer');
   if(!abriuEm){ el.style.display='none'; return; }
@@ -164,13 +208,13 @@ function startCountdown(){
   timerId = setInterval(()=>{
     renderCountdown();
     if(isExpiredLocal()){
-      onExpiredUI(); // encerra sessão e oculta itens
+      onExpiredUI();
       clearInterval(timerId);
     }
   }, 1000);
 }
 
-/* ====== Liberação servidor ====== */
+/* ===== Liberação servidor ===== */
 async function checkServerLiberation(){
   try{
     const url = `${URL_COTACAO}?action=checar_liberacao&empresa=${encodeURIComponent(empresa)}&fornecedor=${encodeURIComponent(fornecedor)}&painel=${encodeURIComponent(painel)}`;
@@ -180,7 +224,7 @@ async function checkServerLiberation(){
   }catch{ return false; }
 }
 
-/* ====== Histórico / bloqueio duplicado ====== */
+/* ===== Histórico / bloqueio duplicado ===== */
 function blockIfAlreadySent(){
   const sent = lsGet(keyBase + ":sent", null);
   if(sent && sent.fornecedor === fornecedor){
@@ -199,43 +243,34 @@ function pushHistory(enviados){
   lsSet(k, arr);
 }
 
-/* ====== UI: entrar/sair logado ====== */
+/* ===== UI / sessão ===== */
 function lockLoginControls(on){
   document.getElementById('selFornecedor').disabled = on;
   document.getElementById('inputSenha').disabled = on;
   document.getElementById('btnValidar').disabled = on;
-  if(on){
-    document.getElementById('selFornecedor').title = "Bloqueado até acabar a janela";
-    document.getElementById('inputSenha').title = "Bloqueado até acabar a janela";
-    document.getElementById('btnValidar').title = "Bloqueado até acabar a janela";
-  }else{
-    document.getElementById('selFornecedor').removeAttribute('title');
-    document.getElementById('inputSenha').removeAttribute('title');
-    document.getElementById('btnValidar').removeAttribute('title');
-  }
 }
 async function enterLoggedState(){
-  // inicia janela e exibe itens
   setOpenTimeIfMissing();
   startCountdown();
   lockLoginControls(true);
+
   const badge = document.getElementById('badgeLogin');
   badge.textContent = `✅ Logado como ${fornecedor} | Empresa: ${empresa || '—'}`;
   badge.style.display = 'inline-flex';
 
-  // mostra elementos da grade/salvar
   showElems(true, 'btnEnviar', 'dicaMascara');
 
-  // carrega itens só agora
   await carregarItens();
-
-  // se já enviou, travamos inputs (mas a lista permanece visível)
   blockIfAlreadySent();
 
   document.getElementById('info').textContent = `Itens liberados durante a janela.`;
+
+  // esconde a “dica: arraste” após 3s ou ao rolar
+  const hint = document.getElementById('scrollHint');
+  setTimeout(()=>hint.classList.add('hide'), 3000);
+  document.getElementById('twrap').addEventListener('scroll', ()=>hint.classList.add('hide'), {once:true});
 }
 function onExpiredUI(){
-  // fim da janela: derruba sessão e oculta itens
   lsDel(keyBase + ":logged");
   const box = document.getElementById('avisoExpirado');
   box.style.display = 'block';
@@ -244,17 +279,15 @@ function onExpiredUI(){
   document.getElementById('btnSolicitarLiberacao').style.display = 'inline-block';
   document.getElementById('timer').style.display = 'block';
 
-  // oculta itens e botão de envio
   document.getElementById('tbody').innerHTML = '';
   showElems(false, 'btnEnviar', 'dicaMascara');
 
-  // reabilita login para uma nova janela/liberação
   lockLoginControls(false);
   document.getElementById('badgeLogin').style.display = 'none';
   document.getElementById('info').textContent = "Faça login para visualizar os itens.";
 }
 
-/* =================== Carregamento =================== */
+/* ===== Boot ===== */
 window.addEventListener('load', async ()=>{
   const p = new URLSearchParams(location.search);
   empresa = p.get("empresa") || "";
@@ -267,18 +300,17 @@ window.addEventListener('load', async ()=>{
   await carregarListaFornecedores(fornecedorUrl);
   document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor || '(selecione)'}`;
 
-  // se havia sessão válida, volta logado (e só sai quando esgotar)
   const openTs = lsGet(keyBase + ":openTs", null);
   if(openTs){ abriuEm = openTs; }
   if(isLogged()){
     await enterLoggedState();
   }else{
-    // garante que, sem login, nada apareça
     document.getElementById('tbody').innerHTML = '';
     showElems(false, 'btnEnviar', 'dicaMascara');
   }
 });
 
+/* ===== Dados ===== */
 async function carregarListaFornecedores(pref){
   try{
     const r = await fetch(`${URL_COTACAO}?action=fornecedores_lista`);
@@ -286,21 +318,21 @@ async function carregarListaFornecedores(pref){
     const sel = document.getElementById('selFornecedor');
     sel.innerHTML = '';
 
-    const itens = (j && j.ok && Array.isArray(j.items)) ? j.items : [];
-    if(!itens.length){
+    const items = (j && j.ok && Array.isArray(j.items)) ? j.items : [];
+    if(!items.length){
       sel.innerHTML = '<option value="">(Sem fornecedores cadastrados)</option>';
       fornecedor = "";
       return;
     }
-    itens.sort((a,b)=>a.fornecedor.localeCompare(b.fornecedor,'pt-BR'));
-    itens.forEach(x=>{
+    items.sort((a,b)=>a.fornecedor.localeCompare(b.fornecedor,'pt-BR'));
+    items.forEach(x=>{
       const op = document.createElement('option');
       op.value = x.fornecedor;
       op.textContent = x.fornecedor;
       sel.appendChild(op);
     });
 
-    if(pref && itens.some(x=>x.fornecedor === pref)){
+    if(pref && items.some(x=>x.fornecedor === pref)){
       sel.value = pref;
       fornecedor = pref;
     }else{
@@ -314,7 +346,6 @@ async function carregarListaFornecedores(pref){
       document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor}`;
       document.getElementById('statusEnvio').style.display = 'none';
       document.getElementById('badgeLogin').style.display = 'none';
-      // troca de fornecedor sem login → mantém itens ocultos
       document.getElementById('tbody').innerHTML = '';
       showElems(false, 'btnEnviar', 'dicaMascara');
     });
@@ -324,7 +355,6 @@ async function carregarListaFornecedores(pref){
 }
 
 async function carregarItens(){
-  // segurança extra: só carrega se logado
   if(!isLogged()) return;
   try{
     const res = await fetch(`${URL_COTACAO}?action=listar_fornecedores&empresa=${encodeURIComponent(empresa)}`);
@@ -363,7 +393,7 @@ function renderTabela(){
   moneyBindInputs();
 }
 
-/* ============ Login (validação no GAS) ============ */
+/* ===== Login ===== */
 async function validarFornecedor(){
   const senha = (document.getElementById('inputSenha').value || '').trim();
   if(!fornecedor){ alert("Selecione o fornecedor."); return false; }
@@ -376,7 +406,6 @@ async function validarFornecedor(){
     });
     const out = await res.json();
     if(out && out.ok){
-      // marca sessão logada, inicia janela e mostra itens
       lsSet(keyBase + ":logged", { ts: Date.now(), fornecedor });
       await enterLoggedState();
       return true;
@@ -393,7 +422,7 @@ document.getElementById('inputSenha').addEventListener('keydown', (e)=>{
   if(e.key === 'Enter'){ e.preventDefault(); validarFornecedor(); }
 });
 
-/* =================== Solicitar liberação =================== */
+/* ===== Liberação ===== */
 document.getElementById('btnSolicitarLiberacao').addEventListener('click', async ()=>{
   if(!fornecedor){ alert("Selecione o fornecedor."); return; }
   try{
@@ -410,19 +439,15 @@ document.getElementById('btnSolicitarLiberacao').addEventListener('click', async
   }
 });
 
-/* =================== Envio das respostas =================== */
+/* ===== Envio ===== */
 document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
   e.preventDefault();
 
-  // precisa estar logado e ainda dentro da janela
   if(!isLogged()){ alert("Faça login novamente para enviar."); return; }
   if(isExpiredLocal()){
-    // tenta liberação do painel (segundo estágio)
     const ok = await checkServerLiberation();
     if(!ok){ onExpiredUI(); return; }
   }
-
-  // bloqueio duplicado
   if(blockIfAlreadySent()) return;
 
   const linhas = document.querySelectorAll('#tbody tr');
@@ -443,7 +468,6 @@ document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
       produtoCodigo: priceEl.dataset.codigo,
       produtoNome: priceEl.dataset.produto,
       fornecedor,
-      // senha não é revalidada aqui; login já foi feito
       preco: centsToDotDecimal(cents),
       observacoes: obs,
       empresa,
