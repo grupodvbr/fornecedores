@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Responder Cotação</title>
   <style>
     body { font-family: "Inter", Arial, sans-serif; background: #f9fafb; margin: 0; padding: 20px; }
@@ -12,7 +12,7 @@
     th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     th { background: #2563eb; color: #fff; }
     input, button { padding: 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95em; }
-    input[type=number] { width: 120px; }
+    input[type=number], input.money { width: 120px; text-align: right; }
     input[type=text] { width: 100%; }
     button { background: #2563eb; color: #fff; cursor: pointer; margin-top: 15px; width: 100%; font-size: 1em; }
     button:hover { background: #1d4ed8; }
@@ -40,7 +40,7 @@
   </div>
 
 <script>
-const URL_COTACAO = "https://script.google.com/macros/s/AKfycbyftIcU_F0iuuR9LcgsZP460rjWANL1JCKebzYULytslYfOQPaFI_qOfIzG1uAnb3Is/exec"; // 🔹 seu GAS de cotações
+const URL_COTACAO = "https://script.google.com/macros/s/AKfycbyDU1kne2AD4K9kqx9w40KaPcMRNTTcliEzeQuHzbLORQGtXYukOXHccZB2Bk-b3U9C/exec"; 
 let fornecedor="", empresa="", painel="";
 let itens=[];
 
@@ -78,10 +78,23 @@ function render() {
       <td>${it.produto}</td>
       <td>${it.quantidade}</td>
       <td>${it.unidade}</td>
-      <td><input type="number" step="0.01" placeholder="0,00" data-rid="${it.rid}" data-codigo="${it.codigo}" data-produto="${it.produto}"></td>
+      <td>
+        <input type="text" class="money" placeholder="0.00" 
+               inputmode="decimal" pattern="\\d*(\\.\\d{0,2})?" 
+               data-rid="${it.rid}" data-codigo="${it.codigo}" data-produto="${it.produto}">
+      </td>
       <td><input type="text" placeholder="Observação"></td>
     `;
     tb.appendChild(tr);
+  });
+
+  // Máscara para preço em formato monetário
+  document.querySelectorAll("input.money").forEach(inp => {
+    inp.addEventListener("input", () => {
+      let v = inp.value.replace(/[^0-9.]/g, "");
+      if(v.split(".").length > 2) v = v.replace(/\.+$/, ""); // evita múltiplos pontos
+      inp.value = v;
+    });
   });
 }
 
@@ -91,13 +104,13 @@ document.getElementById("formRespostas").onsubmit = async (e) => {
   let enviados = 0;
 
   for (const ln of linhas) {
-    const preco = ln.querySelector("input[type=number]").value;
+    const preco = ln.querySelector("input.money").value;
     const obs = ln.querySelector("input[type=text]").value;
-    const input = ln.querySelector("input[type=number]");
-    if (!preco) continue;
+    const input = ln.querySelector("input.money");
+    if (!preco || Number(preco) <= 0) continue;
 
     const payload = {
-      action: "responder_fornecedor",  // 🔹 corrigido para bater com o GAS
+      action: "responder_fornecedor",
       rid: input.dataset.rid,
       produtoCodigo: input.dataset.codigo,
       produtoNome: input.dataset.produto,
