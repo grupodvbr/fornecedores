@@ -2,507 +2,400 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <!-- Bloqueia zoom e puxa teclado numérico -->
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>Responder Cotação</title>
   <style>
     :root{
-      --bg:#f9fafb; --card:#fff; --txt:#111827; --muted:#6b7280;
-      --brand:#2563eb; --brand-2:#1d4ed8; --ok:#065f46; --okbg:#ecfdf5; --warn:#9a3412; --warnbg:#fff7ed; --bd:#e5e7eb;
+      --bg:#0f172a; --card:#0b1220; --soft:#0d1931; --txt:#e5e7eb; --muted:#94a3b8;
+      --brand:#3b82f6; --brand-2:#2563eb; --ok:#10b981; --okbg:#05291e; --warn:#f59e0b; --warnbg:#332406;
+      --bd:#1e293b; --chip:#1f2a44;
     }
     *{box-sizing:border-box}
-    html,body{height:100%}
-    body{font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--txt);margin:0;padding:16px}
-    .box{max-width:980px;margin:auto;background:var(--card);padding:16px 16px 20px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
-    h1{margin:0 0 8px;text-align:center;font-size:1.35rem}
-    p#info{margin:4px 0 12px;color:var(--muted);text-align:center}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#0b1220,#0f172a 45%,#0b1220);color:var(--txt);padding:14px}
+    .shell{max-width:980px;margin:auto}
 
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:8px 0 10px}
-    .toolbar label{display:flex;flex-direction:column;gap:6px}
-    .toolbar select,.toolbar input{padding:12px;border:1px solid var(--bd);border-radius:10px;font-size:16px;height:46px}
-    .toolbar .hint{font-size:12px;color:var(--muted);width:100%;text-align:center}
-    .badge{display:inline-flex;align-items:center;gap:8px;background:var(--okbg);border:1px solid #6ee7b7;color:var(--ok);padding:8px 10px;border-radius:999px;font-size:14px;margin:6px auto 12px;justify-content:center}
-
-    /* Área rolável horizontal da tabela (mobile-friendly) */
-    .table-wrap{
-      width:100%;
-      overflow-x:auto;
-      -webkit-overflow-scrolling:touch;
-      border:1px solid var(--bd);
-      border-radius:10px;
-      background:#fff;
-      position:relative;
+    /* Header */
+    .hero{
+      background:radial-gradient(1200px 350px at 50% -150px,rgba(59,130,246,.35),transparent 60%),
+                 linear-gradient(180deg,rgba(255,255,255,.06),transparent 120px);
+      border:1px solid rgba(148,163,184,.1);
+      border-radius:18px;
+      padding:18px 16px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
     }
-    /* dica de rolagem em mobile */
-    .scroll-hint{
-      position:absolute; right:6px; top:6px;
-      background:rgba(37,99,235,.95); color:#fff;
-      font-size:12px; padding:4px 8px; border-radius:999px;
-      pointer-events:none; opacity:1; transition:.4s opacity ease;
+    h1{margin:0 0 6px;text-align:center;font-weight:800;letter-spacing:.2px}
+    .subtitle{margin:0;color:var(--muted);text-align:center;font-size:.95rem}
+
+    /* Toolbar (login) */
+    .toolbar{
+      display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0 10px
     }
-    .scroll-hint.hide{opacity:0}
+    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (min-width:640px){ .toolbar{grid-template-columns:2fr 1.2fr auto} .row-2{grid-template-columns:1fr 1fr} }
+    .field{display:flex;flex-direction:column;gap:6px}
+    .field select,.field input{
+      width:100%;height:48px;border:1px solid var(--bd);background:var(--soft);color:var(--txt);
+      border-radius:12px;padding:10px 12px;font-size:16px;outline:none
+    }
+    .btn{height:48px;border-radius:12px;border:1px solid rgba(59,130,246,.5);
+      background:linear-gradient(180deg,var(--brand),var(--brand-2));color:#fff;font-weight:700;
+      padding:0 14px;cursor:pointer;box-shadow:0 6px 18px rgba(37,99,235,.35);
+    }
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .hint{color:var(--muted);font-size:.85rem;margin-top:2px;text-align:center}
 
-    table{width:100%;border-collapse:collapse; min-width: 900px;} /* força rolagem se a tela for menor */
-    th,td{border-bottom:1px solid var(--bd);padding:10px}
-    th{background:var(--brand);color:#fff;position:sticky;top:0;z-index:2}
-    td{background:#fff}
-    input,button{padding:12px;border:1px solid var(--bd);border-radius:10px;font-size:16px;height:46px}
-    input.money{width:160px;text-align:right}
-    input[type=text]{width:100%}
-    button[type=button].btn-secondary{background:#eef2ff;border:1px solid #c7d2fe;color:#1e3a8a;cursor:pointer;height:46px}
-    button[type=button].btn-secondary:hover{filter:brightness(.98)}
-    button[type=submit]{width:100%;margin-top:16px;background:var(--brand);border:none;color:#fff;cursor:pointer;height:48px;font-weight:600;border-radius:12px}
-    button[type=submit]:hover{background:var(--brand-2)}
-    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:999}
-    .overlay .card{background:#fff;padding:18px 22px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600}
-    .notice{background:var(--warnbg);border:1px solid #fdba74;color:var(--warn);padding:12px;border-radius:10px;margin:10px 0}
-    .success{background:var(--okbg);border:1px solid #6ee7b7;color:var(--ok);padding:12px;border-radius:10px;margin:10px 0}
-    .muted{color:var(--muted);font-size:13px}
-    .actions{display:flex;gap:10px;justify-content:center;margin-top:12px}
-    .inline-tip{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+    .badge{
+      display:none;align-items:center;justify-content:center;gap:8px;
+      background:var(--okbg);color:#34d399;border:1px solid rgba(16,185,129,.35);
+      padding:10px 12px;border-radius:999px;margin:8px auto 12px;font-weight:700
+    }
 
-    /* ===== Mobile tuning ===== */
-    @media (max-width:640px){
-      .box{padding:14px}
-      h1{font-size:1.2rem}
-      .toolbar{gap:8px}
-      .toolbar label{width:100%}
-      .toolbar select,.toolbar input, .btn-secondary{width:100%}
-      .badge{font-size:13px}
-      /* deixar inputs ainda maiores no celular */
-      input, button{height:50px}
-      input.money{width:190px; font-size:18px}
-      /* cabeçalho fixo dentro do scroller e células mais altas */
-      th,td{padding:12px}
-      /* reforça rolagem horizontal */
-      table{min-width: 980px;}
+    .notice,.success{
+      border-radius:14px;padding:12px 14px;margin:10px 0;font-size:.95rem
+    }
+    .notice{background:var(--warnbg);color:#ffcc66;border:1px solid rgba(245,158,11,.35)}
+    .success{background:var(--okbg);color:#34d399;border:1px solid rgba(16,185,129,.35)}
+
+    /* DESKTOP: tabela com scroll */
+    .table-wrap{display:none;width:100%;overflow:auto;border:1px solid var(--bd);border-radius:14px;background:var(--soft)}
+    table{width:100%;border-collapse:collapse;min-width:900px}
+    th,td{border-bottom:1px solid var(--bd);padding:12px}
+    th{position:sticky;top:0;background:#0d1629}
+    .money{width:160px;text-align:right}
+
+    /* MOBILE: cards bonitos */
+    .cards{display:none;gap:12px}
+    .card{
+      background:linear-gradient(180deg,#0e182f,#0b1220);
+      border:1px solid rgba(148,163,184,.12);
+      border-radius:16px;padding:12px;box-shadow:0 10px 24px rgba(0,0,0,.35)
+    }
+    .prod{font-weight:800;letter-spacing:.2px}
+    .chips{display:flex;gap:8px;margin:6px 0 10px}
+    .chip{background:var(--chip);color:#cbd5e1;padding:6px 10px;border-radius:999px;font-size:.85rem}
+    .grid{display:grid;grid-template-columns:1fr;gap:10px}
+    .grid .field input{height:46px}
+    @media (min-width:640px){ .cards{grid-template-columns:1fr 1fr} }
+
+    .inline-tip{color:var(--muted);font-size:.85rem;text-align:center;margin-top:6px}
+
+    /* Barra fixa do rodapé (mobile) */
+    .fabbar{
+      position:fixed;left:0;right:0;bottom:0;padding:10px 12px;
+      background:linear-gradient(180deg,transparent,rgba(2,6,23,.9) 18%,rgba(2,6,23,.98));
+      backdrop-filter:blur(6px);border-top:1px solid rgba(148,163,184,.1);display:none;z-index:50
+    }
+    .fabinner{max-width:980px;margin:auto;display:flex;gap:10px;align-items:center}
+    .time{color:#cbd5e1;font-size:.95rem;white-space:nowrap}
+    .btn-send{flex:1;height:52px;border:none;border-radius:14px;font-weight:800;color:#fff;
+      background:linear-gradient(180deg,var(--brand),var(--brand-2));box-shadow:0 10px 24px rgba(37,99,235,.35);cursor:pointer}
+    .btn-gray{background:#1f2937;border:1px solid #334155;color:#e5e7eb}
+
+    /* Overlay */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:999}
+    .overlay .card{background:#0b1220;padding:18px 22px;border-radius:14px;border:1px solid rgba(148,163,184,.18);font-weight:700}
+    
+    /* Responsividade */
+    @media (max-width:639px){
+      .cards{display:grid}
+      .fabbar{display:block}
+    }
+    @media (min-width:640px){
+      .table-wrap{display:block}
     }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h1 id="titulo">Responder Cotação</h1>
-    <p id="info">Faça login para visualizar os itens.</p>
+<div class="shell hero">
+  <h1 id="titulo">Responder Cotação</h1>
+  <p id="info" class="subtitle">Faça login para visualizar os itens.</p>
 
-    <!-- Toolbar -->
-    <div class="toolbar">
-      <label>Fornecedor:
-        <select id="selFornecedor"></select>
-      </label>
-      <label>Senha:
-        <input id="inputSenha" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="Digite a senha">
-      </label>
-      <button id="btnValidar" class="btn-secondary" type="button">Validar fornecedor</button>
-      <span class="hint">Os itens só aparecem após o login e permanecem até o fim da janela.</span>
+  <!-- LOGIN -->
+  <div class="toolbar">
+    <div class="field">
+      <label style="color:#cbd5e1;">Fornecedor</label>
+      <select id="selFornecedor"></select>
     </div>
+    <div class="field">
+      <label style="color:#cbd5e1;">Senha</label>
+      <input id="inputSenha" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="Digite a senha">
+    </div>
+    <button id="btnValidar" class="btn" type="button">Validar</button>
+  </div>
+  <p class="hint">Os itens só aparecem após o login e permanecem até o fim da janela.</p>
 
-    <!-- “Empresa logada” depois de validar -->
-    <div id="badgeLogin" class="badge" style="display:none">✅ Logado</div>
+  <div id="badgeLogin" class="badge">✅ Logado</div>
+  <div id="statusEnvio" class="success" style="display:none"></div>
+  <div id="avisoExpirado" class="notice" style="display:none"></div>
 
-    <div id="statusEnvio" class="success" style="display:none"></div>
-    <div id="avisoExpirado" class="notice" style="display:none"></div>
-
-    <form id="formRespostas">
-      <div class="table-wrap" id="twrap">
-        <div class="scroll-hint" id="scrollHint">↔️ arraste</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Produto</th>
-              <th>Qtd</th>
-              <th>Unid</th>
-              <th>Preço Unit.</th>
-              <th>Obs</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-      <div class="inline-tip" id="dicaMascara" style="display:none">Dica: no celular, digite apenas números. Ex.: “1234” vira “12,34”.</div>
-      <button id="btnEnviar" type="submit" style="display:none">📤 Enviar Respostas</button>
-      <div class="actions">
-        <button id="btnSolicitarLiberacao" type="button" class="btn-secondary" style="display:none">Solicitar liberação</button>
-      </div>
-      <p id="timer" class="muted" style="text-align:center;margin-top:8px;display:none"></p>
-    </form>
+  <!-- LISTA: DESKTOP (tabela) -->
+  <div class="table-wrap" id="tableWrap">
+    <table>
+      <thead>
+        <tr><th>Produto</th><th>Qtd</th><th>Unid</th><th>Preço Unit.</th><th>Obs</th></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
   </div>
 
-  <div class="overlay" id="overlay"><div class="card">⏳ Salvando na planilha…</div></div>
+  <!-- LISTA: MOBILE (cards) -->
+  <div class="cards" id="cards"></div>
+
+  <p id="dicaMascara" class="inline-tip" style="display:none">Dica: digite apenas números. Ex.: “1234” vira “12,34”.</p>
+</div>
+
+<!-- Barra fixa (mobile) -->
+<div class="fabbar" id="fab">
+  <div class="fabinner">
+    <div class="time" id="timer">⏱️ 60:00</div>
+    <button id="btnSolicitarLiberacao" class="btn-send btn-gray" style="display:none">Solicitar liberação</button>
+    <button id="btnEnviar" class="btn-send">📤 Enviar Respostas</button>
+  </div>
+</div>
+
+<!-- Overlay -->
+<div class="overlay" id="overlay"><div class="card">⏳ Salvando na planilha…</div></div>
 
 <script>
 /* ===== CONFIG ===== */
 const URL_COTACAO = "https://script.google.com/macros/s/AKfycbyq0tGr8djdAoO3i_PfYPdPAWHknqL_hsIiVV28A_YgmpBivbpsbbp3x3E4Vo0M-zqx/exec";
-const VALIDADE_MS = 60 * 60 * 1000;
+const VALIDADE_MS = 60*60*1000;
 
 /* ===== Estado ===== */
-let fornecedor = "", empresa = "", painel = "";
-let itens = [];
-let keyBase = "";
-let abriuEm = null;
-let timerId = null;
+let fornecedor="", empresa="", painel="";
+let itens=[];
+let keyBase=""; let abriuEm=null; let timerId=null;
 
 /* ===== Utils ===== */
-const lsGet = (k, def=null)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def }catch{ return def } };
-const lsSet = (k, v)=>localStorage.setItem(k, JSON.stringify(v));
-const lsDel = (k)=>localStorage.removeItem(k);
-const showOverlay = (on)=>{ document.getElementById('overlay').style.display = on ? 'flex' : 'none'; };
-const disableForm = (on)=>{ document.querySelectorAll('#formRespostas input, #formRespostas button[type=submit]').forEach(el=>el.disabled=on); };
-const fmtData = (dt)=>{ try{ return new Date(dt).toLocaleString('pt-BR'); }catch{ return String(dt); } };
-const showElems = (on, ...ids)=>ids.forEach(id=>document.getElementById(id).style.display = on ? '' : 'none');
+const $ = (id)=>document.getElementById(id);
+const lsGet=(k,d=null)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{ return d }};
+const lsSet=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const lsDel=(k)=>localStorage.removeItem(k);
+const showOverlay=(on)=>{$('overlay').style.display=on?'flex':'none'};
+const disableForm=(on)=>document.querySelectorAll('input,select,button').forEach(el=>{
+  if(el.id!=='btnSolicitarLiberacao' && el.closest('.fabbar')) return; // deixa a barra ativa
+});
+const fmtData=(dt)=>{try{return new Date(dt).toLocaleString('pt-BR')}catch{return String(dt)}};
+const isMobile=()=>matchMedia('(max-width:639px)').matches;
 
-/* ===== Money mask (centavos) ===== */
-function centsToBR(vCents){
-  const neg = vCents < 0;
-  vCents = Math.abs(vCents);
-  const s = vCents.toString().padStart(3,'0');
-  const i = s.slice(0, -2) || '0';
-  const d = s.slice(-2);
-  const iFmt = i.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return (neg?'-':'') + iFmt + ',' + d;
+/* ===== Money: centavos ===== */
+function centsToBR(c){
+  const neg=c<0; c=Math.abs(c); const s=String(c).padStart(3,'0');
+  const i=s.slice(0,-2)||'0', d=s.slice(-2);
+  return (neg?'-':'') + i.replace(/\B(?=(\d{3})+(?!\d))/g,'.') + ',' + d;
 }
-function moneyBindInputs(){
-  document.querySelectorAll('input.money').forEach(inp=>{
-    inp.type = "text";
-    inp.inputMode = "decimal";
-    inp.autocomplete = "off";
-    inp.spellcheck = false;
-
-    inp.dataset.cents = inp.dataset.cents || "0";
-    inp.value = centsToBR(parseInt(inp.dataset.cents,10)||0);
-
-    inp.addEventListener('input', ()=>{
-      const digits = (inp.value.replace(/\D/g,'') || "0").replace(/^0+(?=\d)/,'');
-      const cents = parseInt(digits,10) || 0;
-      inp.dataset.cents = String(cents);
-      inp.value = centsToBR(cents);
+function centsToDotDecimal(c){ return ((parseInt(c,10)||0)/100).toFixed(2); }
+function bindMoneyInputs(scope=document){
+  scope.querySelectorAll('input.money').forEach(inp=>{
+    inp.type='text'; inp.inputMode='decimal'; inp.autocomplete='off'; inp.spellcheck=false;
+    if(!inp.dataset.cents) inp.dataset.cents='0';
+    inp.value=centsToBR(parseInt(inp.dataset.cents,10)||0);
+    inp.addEventListener('input',()=>{
+      const digits=(inp.value.replace(/\D/g,'')||'0').replace(/^0+(?=\d)/,'');
+      const cents=parseInt(digits,10)||0; inp.dataset.cents=String(cents);
+      inp.value=centsToBR(cents);
     });
-    inp.addEventListener('focus', ()=>{ setTimeout(()=>inp.select(), 0); });
+    inp.addEventListener('focus',()=>setTimeout(()=>inp.select(),0));
   });
 }
-function centsToDotDecimal(cents){
-  const v = (parseInt(cents,10)||0)/100;
-  return v.toFixed(2);
-}
 
-/* ===== Sessão / janela ===== */
-function setOpenTimeIfMissing(){
-  const k = keyBase + ":openTs";
-  let ts = lsGet(k, null);
-  if(!ts){ ts = Date.now(); lsSet(k, ts); }
-  abriuEm = ts;
-}
-function isExpiredLocal(){ return abriuEm ? (Date.now() - abriuEm) > VALIDADE_MS : false; }
-function isLogged(){ return !!lsGet(keyBase + ":logged", null) && !isExpiredLocal(); }
+/* ===== Janela / sessão ===== */
+function setOpenTimeIfMissing(){const k=keyBase+":openTs"; let ts=lsGet(k,null); if(!ts){ts=Date.now();lsSet(k,ts)} abriuEm=ts;}
+function isExpiredLocal(){return abriuEm ? (Date.now()-abriuEm)>VALIDADE_MS:false}
+function isLogged(){return !!lsGet(keyBase+":logged",null) && !isExpiredLocal()}
 function renderCountdown(){
-  const el = document.getElementById('timer');
-  if(!abriuEm){ el.style.display='none'; return; }
-  const left = VALIDADE_MS - (Date.now() - abriuEm);
-  if(left <= 0){ el.textContent = "⛔ Cotação expirada."; return; }
-  const m = Math.floor(left/60000), s = Math.floor((left%60000)/1000);
-  el.textContent = `⏱️ Tempo restante (1ª janela): ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  el.style.display = 'block';
+  const left=VALIDADE_MS-(Date.now()-abriuEm); const el=$('timer');
+  if(left<=0){el.textContent='⛔ Expirado';return}
+  const m=Math.floor(left/60000), s=Math.floor((left%60000)/1000);
+  el.textContent=`⏱️ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 function startCountdown(){
-  if(timerId) clearInterval(timerId);
-  renderCountdown();
-  timerId = setInterval(()=>{
-    renderCountdown();
-    if(isExpiredLocal()){
-      onExpiredUI();
-      clearInterval(timerId);
-    }
-  }, 1000);
+  if(timerId) clearInterval(timerId); renderCountdown();
+  timerId=setInterval(()=>{renderCountdown(); if(isExpiredLocal()){onExpiredUI(); clearInterval(timerId)}},1000);
 }
 
-/* ===== Liberação servidor ===== */
+/* ===== Servidor / liberação ===== */
 async function checkServerLiberation(){
   try{
-    const url = `${URL_COTACAO}?action=checar_liberacao&empresa=${encodeURIComponent(empresa)}&fornecedor=${encodeURIComponent(fornecedor)}&painel=${encodeURIComponent(painel)}`;
-    const r = await fetch(url);
-    const j = await r.json();
-    return !!(j && j.ok && j.liberado);
-  }catch{ return false; }
+    const u=`${URL_COTACAO}?action=checar_liberacao&empresa=${encodeURIComponent(empresa)}&fornecedor=${encodeURIComponent(fornecedor)}&painel=${encodeURIComponent(painel)}`;
+    const j=await (await fetch(u)).json(); return !!(j&&j.ok&&j.liberado);
+  }catch{return false}
 }
 
-/* ===== Histórico / bloqueio duplicado ===== */
+/* ===== Duplicado / histórico ===== */
 function blockIfAlreadySent(){
-  const sent = lsGet(keyBase + ":sent", null);
-  if(sent && sent.fornecedor === fornecedor){
-    const info = document.getElementById('statusEnvio');
-    info.style.display = 'block';
-    info.innerHTML = `✅ Respostas já enviadas por <b>${sent.fornecedor}</b> em <b>${fmtData(sent.ts)}</b>. Envio duplicado não é permitido.`;
-    disableForm(true);
-    return true;
+  const sent=lsGet(keyBase+":sent",null);
+  if(sent && sent.fornecedor===fornecedor){
+    const box=$('statusEnvio');
+    box.style.display='block';
+    box.innerHTML=`✅ Respostas já enviadas por <b>${sent.fornecedor}</b> em <b>${fmtData(sent.ts)}</b>.`;
+    $('btnEnviar').disabled=true; return true;
   }
   return false;
 }
-function pushHistory(enviados){
-  const k = keyBase + ":history";
-  const arr = lsGet(k, []);
-  arr.push({ ts: Date.now(), enviados, fornecedor });
-  lsSet(k, arr);
+function pushHistory(c){const k=keyBase+":history";const a=lsGet(k,[]);a.push({ts:Date.now(),enviados:c,fornecedor});lsSet(k,a);}
+
+/* ===== Render ===== */
+function renderCards(){
+  const wrap=$('cards'); wrap.innerHTML=''; wrap.style.display='grid';
+  itens.forEach(it=>{
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`
+      <div class="prod">${it.produto}</div>
+      <div class="chips">
+        <div class="chip">Qtd: <b>${it.quantidade??''}</b></div>
+        <div class="chip">Unid: <b>${it.unidade??''}</b></div>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <label style="color:#cbd5e1;">Preço unitário</label>
+          <input class="money" placeholder="0,00" data-rid="${it.rid}" data-codigo="${it.codigo||''}" data-produto="${it.produto}">
+        </div>
+        <div class="field">
+          <label style="color:#cbd5e1;">Observação</label>
+          <input type="text" class="obs" placeholder="Observação">
+        </div>
+      </div>`;
+    wrap.appendChild(card);
+  });
+  bindMoneyInputs(wrap);
+}
+function renderTable(){
+  const tb=$('tbody'); tb.innerHTML=''; $('tableWrap').style.display='block';
+  itens.forEach(it=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${it.produto}</td>
+      <td>${it.quantidade??''}</td>
+      <td>${it.unidade??''}</td>
+      <td><input class="money" placeholder="0,00" data-rid="${it.rid}" data-codigo="${it.codigo||''}" data-produto="${it.produto}"></td>
+      <td><input type="text" class="obs" placeholder="Observação"></td>`;
+    tb.appendChild(tr);
+  });
+  bindMoneyInputs(tb);
+}
+function renderList(){
+  $('tableWrap').style.display='none'; $('cards').style.display='none';
+  if(isMobile()) renderCards(); else renderTable();
 }
 
-/* ===== UI / sessão ===== */
-function lockLoginControls(on){
-  document.getElementById('selFornecedor').disabled = on;
-  document.getElementById('inputSenha').disabled = on;
-  document.getElementById('btnValidar').disabled = on;
+/* ===== Fluxo de login ===== */
+function lockLogin(on){
+  $('selFornecedor').disabled=on; $('inputSenha').disabled=on; $('btnValidar').disabled=on;
 }
 async function enterLoggedState(){
-  setOpenTimeIfMissing();
-  startCountdown();
-  lockLoginControls(true);
-
-  const badge = document.getElementById('badgeLogin');
-  badge.textContent = `✅ Logado como ${fornecedor} | Empresa: ${empresa || '—'}`;
-  badge.style.display = 'inline-flex';
-
-  showElems(true, 'btnEnviar', 'dicaMascara');
-
-  await carregarItens();
-  blockIfAlreadySent();
-
-  document.getElementById('info').textContent = `Itens liberados durante a janela.`;
-
-  // esconde a “dica: arraste” após 3s ou ao rolar
-  const hint = document.getElementById('scrollHint');
-  setTimeout(()=>hint.classList.add('hide'), 3000);
-  document.getElementById('twrap').addEventListener('scroll', ()=>hint.classList.add('hide'), {once:true});
+  setOpenTimeIfMissing(); startCountdown(); lockLogin(true);
+  const badge=$('badgeLogin'); badge.textContent=`✅ Logado como ${fornecedor} | Empresa: ${empresa||'—'}`; badge.style.display='flex';
+  $('dicaMascara').style.display='block'; $('fab').style.display='block';
+  await carregarItens(); renderList(); blockIfAlreadySent();
+  $('info').textContent=`Itens liberados durante a janela.`;
 }
 function onExpiredUI(){
-  lsDel(keyBase + ":logged");
-  const box = document.getElementById('avisoExpirado');
-  box.style.display = 'block';
-  box.innerHTML = "⛔ A janela expirou. Solicite liberação no painel de cotações.";
-  disableForm(true);
-  document.getElementById('btnSolicitarLiberacao').style.display = 'inline-block';
-  document.getElementById('timer').style.display = 'block';
-
-  document.getElementById('tbody').innerHTML = '';
-  showElems(false, 'btnEnviar', 'dicaMascara');
-
-  lockLoginControls(false);
-  document.getElementById('badgeLogin').style.display = 'none';
-  document.getElementById('info').textContent = "Faça login para visualizar os itens.";
+  lsDel(keyBase+":logged");
+  $('avisoExpirado').style.display='block';
+  $('avisoExpirado').innerHTML="⛔ Janela expirada. Solicite liberação no painel.";
+  $('btnSolicitarLiberacao').style.display='';
+  $('btnEnviar').disabled=true;
 }
 
 /* ===== Boot ===== */
 window.addEventListener('load', async ()=>{
-  const p = new URLSearchParams(location.search);
-  empresa = p.get("empresa") || "";
-  painel  = p.get("painel")  || "";
-  const fornecedorUrl = p.get("fornecedor") || "";
-
-  fornecedor = fornecedorUrl || "";
-  keyBase = `cotacao:${empresa}:${fornecedor}:${painel}`;
-
-  await carregarListaFornecedores(fornecedorUrl);
-  document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor || '(selecione)'}`;
-
-  const openTs = lsGet(keyBase + ":openTs", null);
-  if(openTs){ abriuEm = openTs; }
-  if(isLogged()){
-    await enterLoggedState();
-  }else{
-    document.getElementById('tbody').innerHTML = '';
-    showElems(false, 'btnEnviar', 'dicaMascara');
-  }
+  const p=new URLSearchParams(location.search);
+  empresa=p.get('empresa')||''; painel=p.get('painel')||''; const fornURL=p.get('fornecedor')||'';
+  fornecedor=fornURL||''; keyBase=`cotacao:${empresa}:${fornecedor}:${painel}`;
+  await carregarFornecedores(fornURL);
+  $('titulo').textContent=`Responder Cotação – ${fornecedor||'(selecione)'}`;
+  const ts=lsGet(keyBase+":openTs",null); if(ts) abriuEm=ts;
+  if(isLogged()) await enterLoggedState();
+  window.addEventListener('resize',()=>{ if(isLogged()) renderList(); });
 });
 
 /* ===== Dados ===== */
-async function carregarListaFornecedores(pref){
+async function carregarFornecedores(pref){
   try{
-    const r = await fetch(`${URL_COTACAO}?action=fornecedores_lista`);
-    const j = await r.json();
-    const sel = document.getElementById('selFornecedor');
-    sel.innerHTML = '';
-
-    const items = (j && j.ok && Array.isArray(j.items)) ? j.items : [];
-    if(!items.length){
-      sel.innerHTML = '<option value="">(Sem fornecedores cadastrados)</option>';
-      fornecedor = "";
-      return;
-    }
+    const j=await (await fetch(`${URL_COTACAO}?action=fornecedores_lista`)).json();
+    const sel=$('selFornecedor'); sel.innerHTML='';
+    const items=(j&&j.ok&&Array.isArray(j.items))?j.items:[];
+    if(!items.length){ sel.innerHTML='<option>(sem fornecedores)</option>'; fornecedor=''; return; }
     items.sort((a,b)=>a.fornecedor.localeCompare(b.fornecedor,'pt-BR'));
-    items.forEach(x=>{
-      const op = document.createElement('option');
-      op.value = x.fornecedor;
-      op.textContent = x.fornecedor;
-      sel.appendChild(op);
+    for(const x of items){ const o=document.createElement('option'); o.value=x.fornecedor; o.textContent=x.fornecedor; sel.appendChild(o); }
+    if(pref && items.some(x=>x.fornecedor===pref)){ sel.value=pref; fornecedor=pref } else { fornecedor=sel.value }
+    keyBase=`cotacao:${empresa}:${fornecedor}:${painel}`;
+    sel.addEventListener('change',()=>{
+      fornecedor=sel.value; keyBase=`cotacao:${empresa}:${fornecedor}:${painel}`;
+      $('titulo').textContent=`Responder Cotação – ${fornecedor}`; $('badgeLogin').style.display='none';
+      $('info').textContent='Faça login para visualizar os itens.'; $('cards').innerHTML=''; $('tbody').innerHTML='';
+      $('dicaMascara').style.display='none'; $('fab').style.display='none';
     });
-
-    if(pref && items.some(x=>x.fornecedor === pref)){
-      sel.value = pref;
-      fornecedor = pref;
-    }else{
-      fornecedor = sel.value;
-    }
-
-    keyBase = `cotacao:${empresa}:${fornecedor}:${painel}`;
-    sel.addEventListener('change', ()=>{
-      fornecedor = sel.value;
-      keyBase = `cotacao:${empresa}:${fornecedor}:${painel}`;
-      document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor}`;
-      document.getElementById('statusEnvio').style.display = 'none';
-      document.getElementById('badgeLogin').style.display = 'none';
-      document.getElementById('tbody').innerHTML = '';
-      showElems(false, 'btnEnviar', 'dicaMascara');
-    });
-  }catch(e){
-    alert("Erro ao carregar fornecedores: "+e.message);
-  }
+  }catch(e){ alert('Erro ao carregar fornecedores: '+e.message); }
 }
-
 async function carregarItens(){
   if(!isLogged()) return;
-  try{
-    const res = await fetch(`${URL_COTACAO}?action=listar_fornecedores&empresa=${encodeURIComponent(empresa)}`);
-    const out = await res.json();
-    if(!out.ok || !out.items || out.items.length===0){
-      document.getElementById('info').textContent = "✅ Nenhuma cotação pendente.";
-      document.getElementById('tbody').innerHTML = '';
-      return;
-    }
-    itens = out.items;
-    renderTabela();
-    document.getElementById('info').textContent = `Exibindo ${itens.length} itens para cotação`;
-  }catch(e){
-    alert("Erro ao carregar itens: " + e.message);
-  }
+  const j=await (await fetch(`${URL_COTACAO}?action=listar_fornecedores&empresa=${encodeURIComponent(empresa)}`)).json();
+  if(!j.ok || !Array.isArray(j.items) || !j.items.length){ $('info').textContent='✅ Nenhuma cotação pendente.'; itens=[]; }
+  else{ itens=j.items; $('info').textContent=`Exibindo ${itens.length} itens para cotação`; }
 }
 
-function renderTabela(){
-  const tb = document.getElementById('tbody');
-  tb.innerHTML = "";
-  itens.forEach(it=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${it.produto}</td>
-      <td>${it.quantidade ?? ''}</td>
-      <td>${it.unidade ?? ''}</td>
-      <td>
-        <input class="money" placeholder="0,00"
-               inputmode="decimal" autocomplete="off"
-               data-rid="${it.rid}" data-codigo="${it.codigo || ''}" data-produto="${it.produto}">
-      </td>
-      <td><input type="text" class="obs" placeholder="Observação" autocomplete="off"></td>
-    `;
-    tb.appendChild(tr);
-  });
-  moneyBindInputs();
-}
-
-/* ===== Login ===== */
+/* ===== Validar login ===== */
 async function validarFornecedor(){
-  const senha = (document.getElementById('inputSenha').value || '').trim();
-  if(!fornecedor){ alert("Selecione o fornecedor."); return false; }
-  if(!senha){ alert("Informe a senha do fornecedor."); return false; }
+  const senha=($('inputSenha').value||'').trim();
+  if(!fornecedor){ alert('Selecione o fornecedor.'); return false }
+  if(!senha){ alert('Informe a senha.'); return false }
   try{
-    const res = await fetch(URL_COTACAO, {
-      method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify({ action:"validar_fornecedor", fornecedor, senha })
-    });
-    const out = await res.json();
-    if(out && out.ok){
-      lsSet(keyBase + ":logged", { ts: Date.now(), fornecedor });
-      await enterLoggedState();
-      return true;
-    }
-    alert("Senha inválida para o fornecedor selecionado.");
-    return false;
-  }catch(e){
-    alert("Falha ao validar fornecedor: "+e.message);
-    return false;
-  }
+    const out=await (await fetch(URL_COTACAO,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'validar_fornecedor',fornecedor,senha})})).json();
+    if(out&&out.ok){ lsSet(keyBase+":logged",{ts:Date.now(),fornecedor}); await enterLoggedState(); return true }
+    alert('Senha inválida.'); return false;
+  }catch(e){ alert('Falha ao validar: '+e.message); return false }
 }
-document.getElementById('btnValidar').addEventListener('click', ()=>{ validarFornecedor(); });
-document.getElementById('inputSenha').addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter'){ e.preventDefault(); validarFornecedor(); }
-});
+$('btnValidar').addEventListener('click',()=>validarFornecedor());
+$('inputSenha').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); validarFornecedor(); }});
 
 /* ===== Liberação ===== */
-document.getElementById('btnSolicitarLiberacao').addEventListener('click', async ()=>{
-  if(!fornecedor){ alert("Selecione o fornecedor."); return; }
+$('btnSolicitarLiberacao').addEventListener('click', async ()=>{
+  if(!fornecedor){ alert('Selecione o fornecedor.'); return; }
   try{
-    const res = await fetch(URL_COTACAO, {
-      method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify({ action:"solicitar_liberacao", empresa, fornecedor, painel })
-    });
-    const out = await res.json();
-    if(out && out.ok) alert("📨 Solicitação de liberação enviada. Aguarde aprovação no painel.");
-    else alert("Não foi possível solicitar liberação.");
-  }catch(e){
-    alert("Erro ao solicitar liberação: "+e.message);
-  }
+    const out=await (await fetch(URL_COTACAO,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:'solicitar_liberacao',empresa,fornecedor,painel})})).json();
+    alert(out&&out.ok?'📨 Solicitação enviada. Aguarde aprovação.':'Não foi possível solicitar.');
+  }catch(e){ alert('Erro: '+e.message); }
 });
 
 /* ===== Envio ===== */
-document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
-  e.preventDefault();
-
-  if(!isLogged()){ alert("Faça login novamente para enviar."); return; }
-  if(isExpiredLocal()){
-    const ok = await checkServerLiberation();
-    if(!ok){ onExpiredUI(); return; }
-  }
+$('btnEnviar').addEventListener('click', async ()=>{
+  if(!isLogged()){ alert('Faça login novamente.'); return; }
+  if(isExpiredLocal()){ const ok=await checkServerLiberation(); if(!ok){ onExpiredUI(); return; } }
   if(blockIfAlreadySent()) return;
 
-  const linhas = document.querySelectorAll('#tbody tr');
-  if(!linhas.length){ alert('Nada para enviar.'); return; }
+  const roots = isMobile() ? document.querySelectorAll('#cards .card') : document.querySelectorAll('#tbody tr');
+  if(!roots.length){ alert('Nada para enviar.'); return; }
 
   showOverlay(true);
-  let enviados = 0, erros = [];
-
-  for(const ln of linhas){
-    const priceEl = ln.querySelector('input.money');
-    const cents   = priceEl.dataset.cents || "0";
-    const obs     = ln.querySelector('input.obs').value || "";
-    if(parseInt(cents,10) <= 0) continue;
-
-    const payload = {
-      action: "responder_fornecedor",
-      rid: priceEl.dataset.rid,
-      produtoCodigo: priceEl.dataset.codigo,
-      produtoNome: priceEl.dataset.produto,
-      fornecedor,
-      preco: centsToDotDecimal(cents),
-      observacoes: obs,
-      empresa,
-      painelCodigo: painel
+  let enviados=0, erros=[];
+  for(const root of roots){
+    const priceEl=root.querySelector('input.money'); const cents=priceEl.dataset.cents||'0';
+    if(parseInt(cents,10)<=0) continue;
+    const obs=(root.querySelector('.obs')?.value)||'';
+    const payload={
+      action:'responder_fornecedor',
+      rid:priceEl.dataset.rid, produtoCodigo:priceEl.dataset.codigo, produtoNome:priceEl.dataset.produto,
+      fornecedor, preco:centsToDotDecimal(cents), observacoes:obs, empresa, painelCodigo:painel
     };
-
     try{
-      const res = await fetch(URL_COTACAO, {
-        method: "POST",
-        headers: {"Content-Type":"text/plain;charset=utf-8"},
-        body: JSON.stringify(payload)
-      });
-      const out = await res.json();
-      if(out && out.ok){ enviados += (out.count || 1); }
-      else { erros.push(out && out.error ? out.error : 'Falha desconhecida'); }
-    }catch(err){
-      erros.push(String(err));
-    }
+      const out=await (await fetch(URL_COTACAO,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)})).json();
+      if(out&&out.ok){ enviados += (out.count||1); } else { erros.push(out?.error||'Falha desconhecida'); }
+    }catch(e){ erros.push(String(e)); }
   }
-
   showOverlay(false);
 
-  if(erros.length){
-    alert(`⚠️ Enviadas: ${enviados}\nErros: ${erros.length}\n\nPrimeiro erro: ${erros[0]}`);
-    return;
-  }
-
-  lsSet(keyBase + ":sent", { ts: Date.now(), fornecedor });
-  pushHistory(enviados);
-
-  const info = document.getElementById('statusEnvio');
-  info.style.display = 'block';
-  info.innerHTML = `✅ ${enviados} respostas registradas por <b>${fornecedor}</b> em <b>${fmtData(Date.now())}</b>.`;
-  disableForm(true);
+  if(erros.length){ alert(`⚠️ Enviadas: ${enviados}\nErros: ${erros.length}\n\nPrimeiro erro: ${erros[0]}`); return; }
+  lsSet(keyBase+":sent",{ts:Date.now(),fornecedor}); pushHistory(enviados);
+  $('statusEnvio').style.display='block';
+  $('statusEnvio').innerHTML=`✅ ${enviados} respostas registradas por <b>${fornecedor}</b> em <b>${fmtData(Date.now())}</b>.`;
+  $('btnEnviar').disabled=true;
 });
+
+/* ----- fim ----- */
 </script>
 </body>
 </html>
