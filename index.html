@@ -169,7 +169,7 @@
 
 <script>
 /* ===== CONFIG ===== */
-const URL_COTACAO = "https://script.google.com/macros/s/AKfycbx646JqklL0omBRFD_CmY7LHcijfZ8OoKv9GOYLXSeKM1RXZOsx4Y5BcufotkXsWvl6/exec";
+const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzuwVfdY6wwl-MgkTqrcdRmXdfCnrVgqglAEr7wYyx-e9s3WlZisMxfqc3qGrMXotaN/exec";
 const VALIDADE_MS = 60*60*1000;
 
 /* ===== Estado ===== */
@@ -389,52 +389,84 @@ wireSolicitarLiberacaoButtons();
 function wireEnviarButtons(){
   const handler = async ()=>{
     if(!isLogged()){ alert('Faça login novamente.'); return; }
+
+    // (opcional) se usar janela + liberação:
     if(isExpiredLocal()){ const ok=await checkServerLiberation(); if(!ok){ onExpiredUI(); return; } }
     if(blockIfAlreadySent()) return;
 
-    // coleta linhas/cartões e conta quantos serão enviados
-    const roots = isMobile() ? document.querySelectorAll('#cards .card') : document.querySelectorAll('#tbody tr');
+    const roots = isMobile()
+      ? document.querySelectorAll('#cards .card')
+      : document.querySelectorAll('#tbody tr');
+
     if(!roots.length){ alert('Nada para enviar.'); return; }
 
-    let preenchidos = 0;
+    // Coleta apenas os itens com preço informado
+    const itensPayload = [];
     roots.forEach(root=>{
-      const priceEl=root.querySelector('input.money');
-      const cents=priceEl?.dataset?.cents||'0';
-      if(parseInt(cents,10)>0) preenchidos++;
+      const priceEl = root.querySelector('input.money');
+      const cents   = priceEl?.dataset?.cents || '0';
+      if(parseInt(cents,10) <= 0) return;
+
+      itensPayload.push({
+        rid:      priceEl.dataset.rid,
+        codigo:   priceEl.dataset.codigo,
+        produto:  priceEl.dataset.produto,
+        preco:    centsToDotDecimal(cents),   // "12.34"
+        obs:      (root.querySelector('.obs')?.value)||''
+      });
     });
-    if(preenchidos===0){ alert('Informe pelo menos um preço para enviar.'); return; }
 
-    // 🔔 CONFIRMAÇÃO
-    const confirma = confirm(`Você deseja enviar ${preenchidos} resposta(s) para a planilha?`);
-    if(!confirma) return;
-
-    showOverlay(true);
-    let enviados=0, erros=[];
-    for(const root of roots){
-      const priceEl=root.querySelector('input.money'); const cents=priceEl?.dataset?.cents||'0';
-      if(parseInt(cents,10)<=0) continue;
-      const obs=(root.querySelector('.obs')?.value)||'';
-      const payload={
-        action:'responder_fornecedor',
-        rid:priceEl.dataset.rid, produtoCodigo:priceEl.dataset.codigo, produtoNome:priceEl.dataset.produto,
-        fornecedor, senha: ($('inputSenha').value||'').trim(),
-        preco:centsToDotDecimal(cents), observacoes:obs, empresa, painelCodigo:painel
-      };
-      try{
-        const out=await (await fetch(URL_COTACAO,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)})).json();
-        if(out&&out.ok){ enviados += (out.count||1); } else { erros.push(out?.error||'Falha desconhecida'); }
-      }catch(e){ erros.push(String(e)); }
-    }
-    showOverlay(false);
-
-    if(erros.length){
-      alert(`⚠️ Enviadas: ${enviados}\nErros: ${erros.length}\n\nPrimeiro erro: ${erros[0]}`);
+    if(itensPayload.length === 0){
+      alert('Informe pelo menos um preço para enviar.');
       return;
     }
-    lsSet(keyBase+":sent",{ts:Date.now(),fornecedor}); pushHistory(enviados);
-    $('statusEnvio').style.display='block';
-    $('statusEnvio').innerHTML=`✅ ${enviados} respostas registradas por <b>${fornecedor}</b> em <b>${fmtData(Date.now())}</b>.`;
-    disableSendButtons(true);
+
+    if(!empresa || !empresa.trim()){
+      const v = prompt('Informe o nome da EMPRESA para salvar no JSON:');
+      if(!v) return;
+      empresa = v.trim();
+      keyBase = `cotacao:${empresa}:${fornecedor}:${painel}`;
+    }
+
+    // Confirmação
+    if(!confirm(`Você deseja enviar ${itensPayload.length} resposta(s) para a planilha?`)) return;
+
+    showOverlay(true);
+
+    try{
+      const payload = {
+        action: 'responder_json',
+        fornecedor,
+        empresa,
+        painelCodigo: painel,
+        itens: itensPayload
+      };
+
+      const out = await (await fetch(URL_COTACAO, {
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify(payload)
+      })).json();
+
+      showOverlay(false);
+
+      if(!out || !out.ok){
+        alert('Falha no envio: ' + (out?.error || 'erro desconhecido'));
+        return;
+      }
+
+      // Sucesso
+      lsSet(keyBase + ":sent", { ts: Date.now(), fornecedor });
+      pushHistory(out.count || itensPayload.length);
+
+      $('statusEnvio').style.display='block';
+      $('statusEnvio').innerHTML =
+        `✅ ${out.count || itensPayload.length} respostas registradas por <b>${fornecedor}</b> em <b>${fmtData(Date.now())}</b>.`;
+      disableSendButtons(true);
+    }catch(e){
+      showOverlay(false);
+      alert('Erro ao enviar: ' + e.message);
+    }
   };
 
   ['btnEnviar','btnEnviarDesk'].forEach(id=>{
