@@ -7,8 +7,11 @@
 <style>
   body{font-family:Inter,Arial,sans-serif;background:#f9fafb;margin:0;padding:20px}
   .box{max-width:920px;margin:auto;background:#fff;padding:20px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-  h1{text-align:center;margin:0 0 10px}
-  p#info{margin:6px 0 14px;color:#6b7280}
+  h1{margin:0 0 6px;text-align:center}
+  p#info{margin:4px 0 12px;color:#6b7280;text-align:center}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:8px 0 16px}
+  .toolbar select,.toolbar input{padding:8px;border:1px solid #d1d5db;border-radius:6px;font-size:15px}
+  .toolbar .hint{font-size:12px;color:#6b7280}
   table{width:100%;border-collapse:collapse}
   th,td{border:1px solid #e5e7eb;padding:8px}
   th{background:#2563eb;color:#fff}
@@ -19,12 +22,31 @@
   button[type=submit]:hover{background:#1d4ed8}
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:999}
   .overlay .card{background:#fff;padding:18px 22px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600}
+  .notice{background:#fff7ed;border:1px solid #fdba74;color:#9a3412;padding:10px;border-radius:8px;margin:10px 0}
+  .success{background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46;padding:10px;border-radius:8px;margin:10px 0}
+  .muted{color:#6b7280;font-size:13px}
+  .actions{display:flex;gap:10px;justify-content:center;margin-top:10px}
+  .btn-secondary{background:#e5e7eb;color:#111827;border:1px solid #d1d5db}
 </style>
 </head>
 <body>
   <div class="box">
     <h1 id="titulo">Responder Cotação</h1>
     <p id="info">Carregando cotações pendentes…</p>
+
+    <!-- Toolbar com fornecedor + senha -->
+    <div class="toolbar">
+      <label>Fornecedor:
+        <select id="selFornecedor"></select>
+      </label>
+      <label>Senha:
+        <input id="inputSenha" type="password" inputmode="numeric" pattern="\\d*" placeholder="Digite a senha">
+      </label>
+      <span class="hint">Informe o fornecedor e a senha para enviar.</span>
+    </div>
+
+    <div id="statusEnvio" class="success" style="display:none"></div>
+    <div id="avisoExpirado" class="notice" style="display:none"></div>
 
     <form id="formRespostas">
       <table>
@@ -39,30 +61,158 @@
         </thead>
         <tbody id="tbody"></tbody>
       </table>
-      <button type="submit">📤 Enviar Respostas</button>
+      <button id="btnEnviar" type="submit">📤 Enviar Respostas</button>
+      <div class="actions">
+        <button id="btnSolicitarLiberacao" type="button" class="btn-secondary" style="display:none">Solicitar liberação</button>
+      </div>
+      <p id="timer" class="muted" style="text-align:center;margin-top:8px;display:none"></p>
     </form>
   </div>
 
   <div class="overlay" id="overlay"><div class="card">⏳ Salvando na planilha…</div></div>
 
 <script>
-const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzRQ0GAmz9m_2F-Ms4DzLQWUqQvmlpBxeMpVOPoXvvuRx-VkjqZbSIVGSWTo2-okjvD/exec"; // 👈 TROQUE AQUI
+/* ===================== CONFIG ===================== */
+// URL do seu GAS
+const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzRQ0GAmz9m_2F-Ms4DzLQWUqQvmlpBxeMpVOPoXvvuRx-VkjqZbSIVGSWTo2-okjvD/exec";
 
-let fornecedor="", empresa="";
-let itens=[];
+// Lista de fornecedores exibidos no menu
+const FORNECEDORES = ["Fornecedor A", "Fornecedor B", "Fornecedor C"];
 
-window.addEventListener('load', async ()=>{
-  const p = new URLSearchParams(location.search);
-  fornecedor = p.get("fornecedor") || "FORNECEDOR";
-  empresa    = p.get("empresa")    || "";
-  document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor}`;
-  await carregarItens();
-});
+// Senha por fornecedor (simples, lado do cliente — apenas para bloquear reenvio acidental)
+const SENHAS = {
+  "Fornecedor A": "1111",
+  "Fornecedor B": "2222",
+  "Fornecedor C": "3333"
+};
 
+// Tempo de validade: 1 hora (ms)
+const VALIDADE_MS = 60 * 60 * 1000;
+
+/* ============== Variáveis de estado =============== */
+let fornecedor = "", empresa = "", painel = "";
+let itens = [];
+let keyBase = "";           // chave base para localStorage
+let abriuEm = null;         // timestamp de abertura
+let timerId = null;
+
+/* ===================== Utils ====================== */
 function normalizeMoneyInputString(v){
   if(!v) return "";
   return String(v).replace(/\s/g,'').replace(',','.');
 }
+function showOverlay(on){ document.getElementById('overlay').style.display = on ? 'flex' : 'none'; }
+function disableForm(on){
+  document.querySelectorAll('#formRespostas input, #formRespostas button[type=submit]').forEach(el=>el.disabled = on);
+}
+function lsGet(k, def=null){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; }catch{ return def; } }
+function lsSet(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
+function fmtData(dt){ try{ return new Date(dt).toLocaleString('pt-BR'); }catch{ return String(dt); } }
+
+/* ============== Expiração & Histórico ============== */
+function setOpenTimeIfMissing(){
+  const k = keyBase + ":openTs";
+  let ts = lsGet(k, null);
+  if(!ts){
+    ts = Date.now();
+    lsSet(k, ts);
+  }
+  abriuEm = ts;
+}
+function isExpired(){
+  if(!abriuEm) return false;
+  return (Date.now() - abriuEm) > VALIDADE_MS;
+}
+function renderCountdown(){
+  const el = document.getElementById('timer');
+  if(!abriuEm){ el.style.display='none'; return; }
+  const left = VALIDADE_MS - (Date.now() - abriuEm);
+  if(left <= 0){ el.textContent = "⛔ Cotação expirada."; return; }
+  const m = Math.floor(left/60000), s = Math.floor((left%60000)/1000);
+  el.textContent = `⏱️ Tempo restante: ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  el.style.display = 'block';
+}
+function startCountdown(){
+  if(timerId) clearInterval(timerId);
+  renderCountdown();
+  timerId = setInterval(()=>{
+    renderCountdown();
+    if(isExpired()){
+      onExpiredUI();
+      clearInterval(timerId);
+    }
+  }, 1000);
+}
+function onExpiredUI(){
+  const box = document.getElementById('avisoExpirado');
+  box.style.display = 'block';
+  box.innerHTML = "⛔ O link de cotação <b>expirou</b>. Peça a liberação no painel de cotações.";
+  disableForm(true);
+  document.getElementById('btnSolicitarLiberacao').style.display = 'inline-block';
+}
+function blockIfAlreadySent(){
+  const sent = lsGet(keyBase + ":sent", null);
+  if(sent && sent.fornecedor === fornecedor){
+    const info = document.getElementById('statusEnvio');
+    info.style.display = 'block';
+    info.innerHTML = `✅ Respostas já enviadas por <b>${sent.fornecedor}</b> em <b>${fmtData(sent.ts)}</b>. Envio duplicado não permitido.`;
+    disableForm(true);
+    return true;
+  }
+  return false;
+}
+function pushHistory(enviados){
+  const k = keyBase + ":history";
+  const arr = lsGet(k, []);
+  arr.push({ ts: Date.now(), enviados, fornecedor });
+  lsSet(k, arr);
+}
+
+/* =================== Carregamento =================== */
+window.addEventListener('load', async ()=>{
+  const p = new URLSearchParams(location.search);
+  const fornecedorUrl = p.get("fornecedor") || "";
+  empresa = p.get("empresa") || "";
+  painel  = p.get("painel")  || ""; // reservado para uso futuro
+
+  // Chave base por empresa + fornecedor (poderia incluir painel se quiser)
+  fornecedor = fornecedorUrl || FORNECEDORES[0];
+  keyBase = `cotacao:${empresa}:${fornecedor}`;
+
+  // Popula dropdown de fornecedores
+  const sel = document.getElementById('selFornecedor');
+  sel.innerHTML = FORNECEDORES.map(f=>`<option value="${f}">${f}</option>`).join('');
+  if(fornecedorUrl && FORNECEDORES.includes(fornecedorUrl)) sel.value = fornecedorUrl;
+  else sel.value = FORNECEDORES[0];
+
+  sel.addEventListener('change', ()=>{
+    fornecedor = sel.value;
+    keyBase = `cotacao:${empresa}:${fornecedor}`;
+    document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor}`;
+    // Revalida bloqueios com o novo fornecedor
+    document.getElementById('statusEnvio').style.display = 'none';
+    disableForm(false);
+    blockIfAlreadySent();
+  });
+
+  document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor}`;
+
+  // Define/recupera hora de abertura
+  setOpenTimeIfMissing();
+  startCountdown();
+
+  // Se já enviou, bloqueia
+  if(blockIfAlreadySent()) return;
+
+  // Se já expirou, bloqueia interface
+  if(isExpired()){
+    onExpiredUI();
+    return;
+  }
+
+  // Carrega itens
+  await carregarItens();
+});
 
 async function carregarItens(){
   try{
@@ -98,11 +248,10 @@ function render(){
     tb.appendChild(tr);
   });
 
-  // máscara básica: somente dígitos, vírgula e ponto
+  // máscara básica: somente dígitos, vírgula e ponto (1 separador)
   document.querySelectorAll('input.money').forEach(inp=>{
     inp.addEventListener('input', ()=>{
       let v = inp.value.replace(/[^\d.,]/g,'');
-      // não deixa mais de um separador decimal
       const parts = v.split(/[.,]/);
       if(parts.length>1){
         v = parts.shift() + ',' + parts.join('');
@@ -112,10 +261,25 @@ function render(){
   });
 }
 
-function showOverlay(on){ document.getElementById('overlay').style.display = on ? 'flex' : 'none'; }
-
+/* =================== Envio & senha =================== */
 document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
   e.preventDefault();
+
+  // janela ainda válida?
+  if(isExpired()){
+    onExpiredUI();
+    return;
+  }
+  // senha confere?
+  const senhaInformada = (document.getElementById('inputSenha').value || '').trim();
+  const senhaEsperada  = SENHAS[fornecedor] || "";
+  if(!senhaInformada || senhaInformada !== senhaEsperada){
+    alert("Senha inválida para o fornecedor selecionado.");
+    return;
+  }
+  // já foi enviado?
+  if(blockIfAlreadySent()) return;
+
   const linhas = document.querySelectorAll('#tbody tr');
   if(!linhas.length){ alert('Nada para enviar.'); return; }
 
@@ -127,8 +291,7 @@ document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
     const precoStr   = normalizeMoneyInputString(inputPreco.value);
     const obs        = ln.querySelector('input.obs').value || "";
 
-    // envia somente linhas com preço preenchido (>= 0,00 conta também)
-    if(precoStr === "") continue;
+    if(precoStr === "") continue; // só envia linhas preenchidas
 
     const payload = {
       action: "responder_fornecedor",
@@ -136,7 +299,7 @@ document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
       produtoCodigo: inputPreco.dataset.codigo,
       produtoNome: inputPreco.dataset.produto,
       fornecedor,
-      preco: precoStr,           // GAS normaliza vírgula/ponto
+      preco: precoStr,
       observacoes: obs,
       empresa
     };
@@ -159,9 +322,23 @@ document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
 
   if(erros.length){
     alert(`⚠️ Enviadas: ${enviados}\nErros: ${erros.length}\n\nPrimeiro erro: ${erros[0]}`);
-  }else{
-    alert(`✅ ${enviados} respostas registradas para ${fornecedor}`);
+    return;
   }
+
+  // marca como enviado e guarda histórico
+  lsSet(keyBase + ":sent", { ts: Date.now(), fornecedor });
+  pushHistory(enviados);
+
+  const info = document.getElementById('statusEnvio');
+  info.style.display = 'block';
+  info.innerHTML = `✅ ${enviados} respostas registradas por <b>${fornecedor}</b> em <b>${fmtData(Date.now())}</b>.`;
+  disableForm(true);
+});
+
+/* ======= Botão “Solicitar liberação” (visual por ora) ======= */
+document.getElementById('btnSolicitarLiberacao').addEventListener('click', ()=>{
+  alert("Solicitação de liberação registrada localmente. A liberação deverá ser feita no painel de cotações.");
+  // Aqui futuramente podemos chamar o GAS: action=solicitar_liberacao com empresa/fornecedor/painel.
 });
 </script>
 </body>
