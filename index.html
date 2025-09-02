@@ -12,7 +12,7 @@
     th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     th { background: #2563eb; color: #fff; }
     input, button { padding: 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95em; }
-    input[type=number], input.money { width: 120px; text-align: right; }
+    input.money { width: 120px; text-align: right; }
     input[type=text] { width: 100%; }
     button { background: #2563eb; color: #fff; cursor: pointer; margin-top: 15px; width: 100%; font-size: 1em; }
     button:hover { background: #1d4ed8; }
@@ -81,18 +81,18 @@ function render() {
       <td>
         <input type="text" class="money" placeholder="0.00" 
                inputmode="decimal" pattern="\\d*(\\.\\d{0,2})?" 
-               data-rid="${it.rid}" data-codigo="${it.codigo}" data-produto="${it.produto}">
+               data-produto="${it.produto}">
       </td>
       <td><input type="text" placeholder="Observação"></td>
     `;
     tb.appendChild(tr);
   });
 
-  // Máscara para preço em formato monetário
+  // Máscara para aceitar só números e ponto
   document.querySelectorAll("input.money").forEach(inp => {
     inp.addEventListener("input", () => {
       let v = inp.value.replace(/[^0-9.]/g, "");
-      if(v.split(".").length > 2) v = v.replace(/\.+$/, ""); // evita múltiplos pontos
+      if(v.split(".").length > 2) v = v.replace(/\.+$/, "");
       inp.value = v;
     });
   });
@@ -111,8 +111,6 @@ document.getElementById("formRespostas").onsubmit = async (e) => {
 
     const payload = {
       action: "responder_fornecedor",
-      rid: input.dataset.rid,
-      produtoCodigo: input.dataset.codigo,
       produtoNome: input.dataset.produto,
       fornecedor,
       preco,
