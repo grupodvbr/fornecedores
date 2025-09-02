@@ -11,98 +11,95 @@
       --bd:#1e293b; --chip:#1f2a44;
     }
     *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#0b1220,#0f172a 45%,#0b1220);color:var(--txt);padding:14px}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:#0b1220;color:var(--txt);padding:10px}
     .shell{max-width:980px;margin:auto}
 
-    /* Header */
+    /* HEADER ULTRA COMPACTO */
     .hero{
-      background:radial-gradient(1200px 350px at 50% -150px,rgba(59,130,246,.35),transparent 60%),
-                 linear-gradient(180deg,rgba(255,255,255,.06),transparent 120px);
-      border:1px solid rgba(148,163,184,.1);
-      border-radius:18px;
-      padding:18px 16px;
-      box-shadow:0 10px 30px rgba(0,0,0,.35);
+      border:1px solid rgba(148,163,184,.12);
+      border-radius:14px;
+      padding:10px 10px;
+      background:#0d1629;
+      box-shadow:0 6px 18px rgba(0,0,0,.35);
     }
-    h1{margin:0 0 6px;text-align:center;font-weight:800;letter-spacing:.2px}
-    .subtitle{margin:0;color:var(--muted);text-align:center;font-size:.95rem}
+    h1{margin:0;text-align:center;font-weight:800;letter-spacing:.2px;font-size:1.12rem}
+    .subtitle{margin:4px 0 0;color:var(--muted);text-align:center;font-size:.88rem}
 
-    /* Toolbar (login) */
+    /* TOOLBAR COMPACTA (LOGIN) */
     .toolbar{
-      display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0 10px
+      margin:8px 0 6px; display:grid; grid-template-columns:1fr 1fr auto; gap:6px;
     }
-    .row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    @media (min-width:640px){ .toolbar{grid-template-columns:2fr 1.2fr auto} .row-2{grid-template-columns:1fr 1fr} }
-    .field{display:flex;flex-direction:column;gap:6px}
+    @media (max-width:640px){
+      .toolbar{grid-template-columns:1fr 1fr auto}
+    }
+    .field{display:flex;gap:4px;align-items:center}
+    .field label{font-size:.8rem;color:#cbd5e1}
     .field select,.field input{
-      width:100%;height:48px;border:1px solid var(--bd);background:var(--soft);color:var(--txt);
-      border-radius:12px;padding:10px 12px;font-size:16px;outline:none
+      height:40px; border:1px solid var(--bd); background:var(--soft); color:var(--txt);
+      border-radius:10px; padding:8px 10px; font-size:14px; width:100%;
     }
-    .btn{height:48px;border-radius:12px;border:1px solid rgba(59,130,246,.5);
-      background:linear-gradient(180deg,var(--brand),var(--brand-2));color:#fff;font-weight:700;
-      padding:0 14px;cursor:pointer;box-shadow:0 6px 18px rgba(37,99,235,.35);
+    .btn{
+      height:40px; border-radius:10px; border:1px solid rgba(59,130,246,.45);
+      background:linear-gradient(180deg,var(--brand),var(--brand-2)); color:#fff;
+      padding:0 12px; font-weight:700; cursor:pointer; white-space:nowrap;
     }
-    .btn:disabled{opacity:.6;cursor:not-allowed}
-    .hint{color:var(--muted);font-size:.85rem;margin-top:2px;text-align:center}
+    .hint{display:none} /* escondi o texto de dica pra liberar espaço */
 
-    .badge{
-      display:none;align-items:center;justify-content:center;gap:8px;
-      background:var(--okbg);color:#34d399;border:1px solid rgba(16,185,129,.35);
-      padding:10px 12px;border-radius:999px;margin:8px auto 12px;font-weight:700
+    /* MINI-BARRA APÓS LOGIN (OCUPA QUASE NADA) */
+    .minibar{
+      display:none; align-items:center; justify-content:center; gap:8px;
+      background:#0b1220; border:1px solid rgba(148,163,184,.12);
+      border-radius:10px; padding:6px 8px; margin:6px 0 8px; color:#cbd5e1; font-size:.88rem
     }
 
     .notice,.success{
-      border-radius:14px;padding:12px 14px;margin:10px 0;font-size:.95rem
+      border-radius:12px;padding:10px 12px;margin:8px 0;font-size:.95rem
     }
     .notice{background:var(--warnbg);color:#ffcc66;border:1px solid rgba(245,158,11,.35)}
     .success{background:var(--okbg);color:#34d399;border:1px solid rgba(16,185,129,.35)}
 
     /* DESKTOP: tabela com scroll */
-    .table-wrap{display:none;width:100%;overflow:auto;border:1px solid var(--bd);border-radius:14px;background:var(--soft)}
+    .table-wrap{display:none;width:100%;overflow:auto;border:1px solid var(--bd);border-radius:12px;background:var(--soft)}
     table{width:100%;border-collapse:collapse;min-width:900px}
-    th,td{border-bottom:1px solid var(--bd);padding:12px}
+    th,td{border-bottom:1px solid var(--bd);padding:10px}
     th{position:sticky;top:0;background:#0d1629}
-    .money{width:160px;text-align:right}
+    .money{width:150px;text-align:right}
 
-    /* MOBILE: cards bonitos */
-    .cards{display:none;gap:12px}
+    /* MOBILE: cards */
+    .cards{display:none;gap:10px;margin-top:6px}
     .card{
       background:linear-gradient(180deg,#0e182f,#0b1220);
       border:1px solid rgba(148,163,184,.12);
-      border-radius:16px;padding:12px;box-shadow:0 10px 24px rgba(0,0,0,.35)
+      border-radius:14px;padding:10px;box-shadow:0 8px 20px rgba(0,0,0,.35)
     }
     .prod{font-weight:800;letter-spacing:.2px}
-    .chips{display:flex;gap:8px;margin:6px 0 10px}
-    .chip{background:var(--chip);color:#cbd5e1;padding:6px 10px;border-radius:999px;font-size:.85rem}
-    .grid{display:grid;grid-template-columns:1fr;gap:10px}
-    .grid .field input{height:46px}
+    .chips{display:flex;gap:6px;margin:6px 0 8px;flex-wrap:wrap}
+    .chip{background:var(--chip);color:#cbd5e1;padding:5px 9px;border-radius:999px;font-size:.8rem}
+    .grid{display:grid;grid-template-columns:1fr;gap:8px}
+    .grid .field input{height:42px}
     @media (min-width:640px){ .cards{grid-template-columns:1fr 1fr} }
 
-    .inline-tip{color:var(--muted);font-size:.85rem;text-align:center;margin-top:6px}
+    .inline-tip{color:var(--muted);font-size:.85rem;text-align:center;margin-top:6px;display:none}
 
-    /* Barra fixa do rodapé (mobile) */
+    /* Barra fixa (mobile) */
     .fabbar{
-      position:fixed;left:0;right:0;bottom:0;padding:10px 12px;
-      background:linear-gradient(180deg,transparent,rgba(2,6,23,.9) 18%,rgba(2,6,23,.98));
+      position:fixed;left:0;right:0;bottom:0;padding:8px 10px;
+      background:linear-gradient(180deg,transparent,rgba(2,6,23,.92) 18%,rgba(2,6,23,.98));
       backdrop-filter:blur(6px);border-top:1px solid rgba(148,163,184,.1);display:none;z-index:50
     }
-    .fabinner{max-width:980px;margin:auto;display:flex;gap:10px;align-items:center}
-    .time{color:#cbd5e1;font-size:.95rem;white-space:nowrap}
-    .btn-send{flex:1;height:52px;border:none;border-radius:14px;font-weight:800;color:#fff;
+    .fabinner{max-width:980px;margin:auto;display:flex;gap:8px;align-items:center}
+    .time{color:#cbd5e1;font-size:.9rem;white-space:nowrap}
+    .btn-send{flex:1;height:46px;border:none;border-radius:12px;font-weight:800;color:#fff;
       background:linear-gradient(180deg,var(--brand),var(--brand-2));box-shadow:0 10px 24px rgba(37,99,235,.35);cursor:pointer}
     .btn-gray{background:#1f2937;border:1px solid #334155;color:#e5e7eb}
 
     /* Overlay */
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:999}
-    .overlay .card{background:#0b1220;padding:18px 22px;border-radius:14px;border:1px solid rgba(148,163,184,.18);font-weight:700}
-    
+    .overlay .card{background:#0b1220;padding:16px 18px;border-radius:12px;border:1px solid rgba(148,163,184,.18);font-weight:700}
+
     /* Responsividade */
-    @media (max-width:639px){
-      .cards{display:grid}
-      .fabbar{display:block}
-    }
-    @media (min-width:640px){
-      .table-wrap{display:block}
-    }
+    @media (max-width:639px){ .cards{display:grid} .fabbar{display:block} }
+    @media (min-width:640px){ .table-wrap{display:block} }
   </style>
 </head>
 <body>
@@ -110,25 +107,26 @@
   <h1 id="titulo">Responder Cotação</h1>
   <p id="info" class="subtitle">Faça login para visualizar os itens.</p>
 
-  <!-- LOGIN -->
-  <div class="toolbar">
+  <!-- LOGIN (compacto) -->
+  <div class="toolbar" id="toolbar">
     <div class="field">
-      <label style="color:#cbd5e1;">Fornecedor</label>
+      <label>Fornecedor</label>
       <select id="selFornecedor"></select>
     </div>
     <div class="field">
-      <label style="color:#cbd5e1;">Senha</label>
-      <input id="inputSenha" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="Digite a senha">
+      <label>Senha</label>
+      <input id="inputSenha" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="Senha">
     </div>
     <button id="btnValidar" class="btn" type="button">Validar</button>
   </div>
-  <p class="hint">Os itens só aparecem após o login e permanecem até o fim da janela.</p>
 
-  <div id="badgeLogin" class="badge">✅ Logado</div>
+  <!-- Mini-bar depois do login -->
+  <div id="miniBar" class="minibar">✅ Logado</div>
+
   <div id="statusEnvio" class="success" style="display:none"></div>
   <div id="avisoExpirado" class="notice" style="display:none"></div>
 
-  <!-- LISTA: DESKTOP (tabela) -->
+  <!-- LISTA: DESKTOP -->
   <div class="table-wrap" id="tableWrap">
     <table>
       <thead>
@@ -138,10 +136,10 @@
     </table>
   </div>
 
-  <!-- LISTA: MOBILE (cards) -->
+  <!-- LISTA: MOBILE -->
   <div class="cards" id="cards"></div>
 
-  <p id="dicaMascara" class="inline-tip" style="display:none">Dica: digite apenas números. Ex.: “1234” vira “12,34”.</p>
+  <p id="dicaMascara" class="inline-tip">Dica: digite apenas números. Ex.: “1234” vira “12,34”.</p>
 </div>
 
 <!-- Barra fixa (mobile) -->
@@ -172,13 +170,10 @@ const lsGet=(k,d=null)=>{try{const v=localStorage.getItem(k);return v?JSON.parse
 const lsSet=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 const lsDel=(k)=>localStorage.removeItem(k);
 const showOverlay=(on)=>{$('overlay').style.display=on?'flex':'none'};
-const disableForm=(on)=>document.querySelectorAll('input,select,button').forEach(el=>{
-  if(el.id!=='btnSolicitarLiberacao' && el.closest('.fabbar')) return; // deixa a barra ativa
-});
 const fmtData=(dt)=>{try{return new Date(dt).toLocaleString('pt-BR')}catch{return String(dt)}};
 const isMobile=()=>matchMedia('(max-width:639px)').matches;
 
-/* ===== Money: centavos ===== */
+/* ===== Money ===== */
 function centsToBR(c){
   const neg=c<0; c=Math.abs(c); const s=String(c).padStart(3,'0');
   const i=s.slice(0,-2)||'0', d=s.slice(-2);
@@ -199,12 +194,12 @@ function bindMoneyInputs(scope=document){
   });
 }
 
-/* ===== Janela / sessão ===== */
+/* ===== Sessão / janela ===== */
 function setOpenTimeIfMissing(){const k=keyBase+":openTs"; let ts=lsGet(k,null); if(!ts){ts=Date.now();lsSet(k,ts)} abriuEm=ts;}
 function isExpiredLocal(){return abriuEm ? (Date.now()-abriuEm)>VALIDADE_MS:false}
 function isLogged(){return !!lsGet(keyBase+":logged",null) && !isExpiredLocal()}
 function renderCountdown(){
-  const left=VALIDADE_MS-(Date.now()-abriuEm); const el=$('timer');
+  const el=$('timer'); const left=VALIDADE_MS-(Date.now()-abriuEm);
   if(left<=0){el.textContent='⛔ Expirado';return}
   const m=Math.floor(left/60000), s=Math.floor((left%60000)/1000);
   el.textContent=`⏱️ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
@@ -248,11 +243,9 @@ function renderCards(){
       </div>
       <div class="grid">
         <div class="field">
-          <label style="color:#cbd5e1;">Preço unitário</label>
           <input class="money" placeholder="0,00" data-rid="${it.rid}" data-codigo="${it.codigo||''}" data-produto="${it.produto}">
         </div>
         <div class="field">
-          <label style="color:#cbd5e1;">Observação</label>
           <input type="text" class="obs" placeholder="Observação">
         </div>
       </div>`;
@@ -280,12 +273,13 @@ function renderList(){
 }
 
 /* ===== Fluxo de login ===== */
-function lockLogin(on){
-  $('selFornecedor').disabled=on; $('inputSenha').disabled=on; $('btnValidar').disabled=on;
+function shrinkNav(){
+  $('toolbar').style.display='none';
+  $('miniBar').style.display='flex';
+  $('miniBar').textContent=`✅ ${fornecedor} • ${empresa||'—'}`;
 }
 async function enterLoggedState(){
-  setOpenTimeIfMissing(); startCountdown(); lockLogin(true);
-  const badge=$('badgeLogin'); badge.textContent=`✅ Logado como ${fornecedor} | Empresa: ${empresa||'—'}`; badge.style.display='flex';
+  setOpenTimeIfMissing(); startCountdown(); shrinkNav();
   $('dicaMascara').style.display='block'; $('fab').style.display='block';
   await carregarItens(); renderList(); blockIfAlreadySent();
   $('info').textContent=`Itens liberados durante a janela.`;
@@ -304,7 +298,7 @@ window.addEventListener('load', async ()=>{
   empresa=p.get('empresa')||''; painel=p.get('painel')||''; const fornURL=p.get('fornecedor')||'';
   fornecedor=fornURL||''; keyBase=`cotacao:${empresa}:${fornecedor}:${painel}`;
   await carregarFornecedores(fornURL);
-  $('titulo').textContent=`Responder Cotação – ${fornecedor||'(selecione)'}`;
+  $('titulo').textContent=`Responder Cotação — ${fornecedor||'(selecione)'}`;
   const ts=lsGet(keyBase+":openTs",null); if(ts) abriuEm=ts;
   if(isLogged()) await enterLoggedState();
   window.addEventListener('resize',()=>{ if(isLogged()) renderList(); });
@@ -323,9 +317,9 @@ async function carregarFornecedores(pref){
     keyBase=`cotacao:${empresa}:${fornecedor}:${painel}`;
     sel.addEventListener('change',()=>{
       fornecedor=sel.value; keyBase=`cotacao:${empresa}:${fornecedor}:${painel}`;
-      $('titulo').textContent=`Responder Cotação – ${fornecedor}`; $('badgeLogin').style.display='none';
+      $('titulo').textContent=`Responder Cotação — ${fornecedor}`; $('miniBar').style.display='none';
       $('info').textContent='Faça login para visualizar os itens.'; $('cards').innerHTML=''; $('tbody').innerHTML='';
-      $('dicaMascara').style.display='none'; $('fab').style.display='none';
+      $('dicaMascara').style.display='none'; $('fab').style.display='none'; $('toolbar').style.display='grid';
     });
   }catch(e){ alert('Erro ao carregar fornecedores: '+e.message); }
 }
@@ -394,8 +388,6 @@ $('btnEnviar').addEventListener('click', async ()=>{
   $('statusEnvio').innerHTML=`✅ ${enviados} respostas registradas por <b>${fornecedor}</b> em <b>${fmtData(Date.now())}</b>.`;
   $('btnEnviar').disabled=true;
 });
-
-/* ----- fim ----- */
 </script>
 </body>
 </html>
