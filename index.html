@@ -73,58 +73,50 @@
 
 <script>
 /* ===================== CONFIG ===================== */
-// URL do seu GAS
 const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzRQ0GAmz9m_2F-Ms4DzLQWUqQvmlpBxeMpVOPoXvvuRx-VkjqZbSIVGSWTo2-okjvD/exec";
 
-// Lista de fornecedores exibidos no menu
+// Mostrados no menu
 const FORNECEDORES = ["Fornecedor A", "Fornecedor B", "Fornecedor C"];
+// Senhas client-side (bloqueio leve); o GAS valida de verdade
+const SENHAS = {"Fornecedor A":"1111","Fornecedor B":"2222","Fornecedor C":"3333"};
 
-// Senha por fornecedor (simples, lado do cliente — apenas para bloquear reenvio acidental)
-const SENHAS = {
-  "Fornecedor A": "1111",
-  "Fornecedor B": "2222",
-  "Fornecedor C": "3333"
-};
-
-// Tempo de validade: 1 hora (ms)
+// 1 hora
 const VALIDADE_MS = 60 * 60 * 1000;
+// Polling da liberação (ms)
+const POLL_MS = 10000;
 
-/* ============== Variáveis de estado =============== */
+/* ============== Estado =============== */
 let fornecedor = "", empresa = "", painel = "";
 let itens = [];
-let keyBase = "";           // chave base para localStorage
-let abriuEm = null;         // timestamp de abertura
+let keyBase = "";
+let abriuEm = null;
 let timerId = null;
+let pollId = null;
 
 /* ===================== Utils ====================== */
-function normalizeMoneyInputString(v){
-  if(!v) return "";
-  return String(v).replace(/\s/g,'').replace(',','.');
-}
-function showOverlay(on){ document.getElementById('overlay').style.display = on ? 'flex' : 'none'; }
-function disableForm(on){
-  document.querySelectorAll('#formRespostas input, #formRespostas button[type=submit]').forEach(el=>el.disabled = on);
-}
+const $ = s => document.querySelector(s);
+function normalizeMoneyInputString(v){ return v ? String(v).replace(/\s/g,'').replace(',','.') : ""; }
+function showOverlay(on){ $('#overlay').style.display = on ? 'flex' : 'none'; }
+function disableForm(on){ document.querySelectorAll('#formRespostas input, #formRespostas button[type=submit]').forEach(el=>el.disabled = on); }
 function lsGet(k, def=null){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; }catch{ return def; } }
 function lsSet(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
 function fmtData(dt){ try{ return new Date(dt).toLocaleString('pt-BR'); }catch{ return String(dt); } }
+function toast(msg){ alert(msg); }
 
 /* ============== Expiração & Histórico ============== */
 function setOpenTimeIfMissing(){
   const k = keyBase + ":openTs";
   let ts = lsGet(k, null);
-  if(!ts){
-    ts = Date.now();
-    lsSet(k, ts);
-  }
+  if(!ts){ ts = Date.now(); lsSet(k, ts); }
   abriuEm = ts;
 }
-function isExpired(){
-  if(!abriuEm) return false;
-  return (Date.now() - abriuEm) > VALIDADE_MS;
+function resetOpenTime(){
+  abriuEm = Date.now();
+  lsSet(keyBase + ":openTs", abriuEm);
 }
+function isExpired(){ return abriuEm ? (Date.now() - abriuEm) > VALIDADE_MS : false; }
 function renderCountdown(){
-  const el = document.getElementById('timer');
+  const el = $('#timer');
   if(!abriuEm){ el.style.display='none'; return; }
   const left = VALIDADE_MS - (Date.now() - abriuEm);
   if(left <= 0){ el.textContent = "⛔ Cotação expirada."; return; }
@@ -144,16 +136,16 @@ function startCountdown(){
   }, 1000);
 }
 function onExpiredUI(){
-  const box = document.getElementById('avisoExpirado');
+  const box = $('#avisoExpirado');
   box.style.display = 'block';
-  box.innerHTML = "⛔ O link de cotação <b>expirou</b>. Peça a liberação no painel de cotações.";
+  box.innerHTML = "⛔ O link de cotação <b>expirou</b>. Clique em <b>Solicitar liberação</b> para pedir liberação por 1 hora.";
   disableForm(true);
-  document.getElementById('btnSolicitarLiberacao').style.display = 'inline-block';
+  $('#btnSolicitarLiberacao').style.display = 'inline-block';
 }
 function blockIfAlreadySent(){
   const sent = lsGet(keyBase + ":sent", null);
   if(sent && sent.fornecedor === fornecedor){
-    const info = document.getElementById('statusEnvio');
+    const info = $('#statusEnvio');
     info.style.display = 'block';
     info.innerHTML = `✅ Respostas já enviadas por <b>${sent.fornecedor}</b> em <b>${fmtData(sent.ts)}</b>. Envio duplicado não permitido.`;
     disableForm(true);
@@ -173,44 +165,39 @@ window.addEventListener('load', async ()=>{
   const p = new URLSearchParams(location.search);
   const fornecedorUrl = p.get("fornecedor") || "";
   empresa = p.get("empresa") || "";
-  painel  = p.get("painel")  || ""; // reservado para uso futuro
+  painel  = p.get("painel")  || "";
 
-  // Chave base por empresa + fornecedor (poderia incluir painel se quiser)
   fornecedor = fornecedorUrl || FORNECEDORES[0];
   keyBase = `cotacao:${empresa}:${fornecedor}`;
 
-  // Popula dropdown de fornecedores
-  const sel = document.getElementById('selFornecedor');
+  // Dropdown
+  const sel = $('#selFornecedor');
   sel.innerHTML = FORNECEDORES.map(f=>`<option value="${f}">${f}</option>`).join('');
-  if(fornecedorUrl && FORNECEDORES.includes(fornecedorUrl)) sel.value = fornecedorUrl;
-  else sel.value = FORNECEDORES[0];
-
+  sel.value = FORNECEDORES.includes(fornecedor) ? fornecedor : FORNECEDORES[0];
   sel.addEventListener('change', ()=>{
     fornecedor = sel.value;
     keyBase = `cotacao:${empresa}:${fornecedor}`;
-    document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor}`;
-    // Revalida bloqueios com o novo fornecedor
-    document.getElementById('statusEnvio').style.display = 'none';
+    $('#titulo').textContent = `Responder Cotação – ${fornecedor}`;
+    $('#statusEnvio').style.display = 'none';
     disableForm(false);
-    blockIfAlreadySent();
+    if(blockIfAlreadySent()) return;
+    if(isExpired()) onExpiredUI(); else $('#btnSolicitarLiberacao').style.display='none';
   });
 
-  document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor}`;
+  $('#titulo').textContent = `Responder Cotação – ${fornecedor}`;
 
-  // Define/recupera hora de abertura
   setOpenTimeIfMissing();
   startCountdown();
 
-  // Se já enviou, bloqueia
   if(blockIfAlreadySent()) return;
 
-  // Se já expirou, bloqueia interface
   if(isExpired()){
     onExpiredUI();
+    // se já pediu antes, retoma polling
+    if(lsGet(keyBase+":libReqTs", null)) startLiberacaoPolling();
     return;
   }
 
-  // Carrega itens
   await carregarItens();
 });
 
@@ -219,20 +206,17 @@ async function carregarItens(){
     const res = await fetch(`${URL_COTACAO}?action=listar_fornecedores&empresa=${encodeURIComponent(empresa)}`);
     const out = await res.json();
     if(!out.ok || !out.items || out.items.length===0){
-      document.getElementById('info').textContent = "✅ Nenhuma cotação pendente.";
+      $('#info').textContent = "✅ Nenhuma cotação pendente.";
       return;
     }
     itens = out.items;
     render();
-    document.getElementById('info').textContent = `Exibindo ${itens.length} cotações pendentes`;
-  }catch(e){
-    alert("Erro ao carregar itens: " + e.message);
-  }
+    $('#info').textContent = `Exibindo ${itens.length} cotações pendentes`;
+  }catch(e){ toast("Erro ao carregar itens: " + e.message); }
 }
 
 function render(){
-  const tb = document.getElementById('tbody');
-  tb.innerHTML = "";
+  const tb = $('#tbody'); tb.innerHTML = "";
   itens.forEach(it=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -247,41 +231,89 @@ function render(){
     `;
     tb.appendChild(tr);
   });
-
-  // máscara básica: somente dígitos, vírgula e ponto (1 separador)
   document.querySelectorAll('input.money').forEach(inp=>{
     inp.addEventListener('input', ()=>{
       let v = inp.value.replace(/[^\d.,]/g,'');
       const parts = v.split(/[.,]/);
-      if(parts.length>1){
-        v = parts.shift() + ',' + parts.join('');
-      }
+      if(parts.length>1){ v = parts.shift() + ',' + parts.join(''); }
       inp.value = v;
     });
   });
 }
 
-/* =================== Envio & senha =================== */
-document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
-  e.preventDefault();
+/* =================== Solicitar liberação =================== */
+async function solicitarLiberacao(){
+  try{
+    $('#btnSolicitarLiberacao').disabled = true;
+    $('#btnSolicitarLiberacao').textContent = 'Solicitando…';
+    const payload = { action:'solicitar_liberacao', empresa, fornecedor, painel };
+    const res = await fetch(URL_COTACAO, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload)
+    });
+    const out = await res.json();
+    if(!out.ok){ throw new Error(out.error || 'Falha ao solicitar liberação'); }
 
-  // janela ainda válida?
-  if(isExpired()){
-    onExpiredUI();
-    return;
+    // marca que solicitou e inicia polling
+    lsSet(keyBase + ':libReqTs', Date.now());
+    toast('📨 Solicitação enviada. Aguarde a liberação pela empresa.');
+    startLiberacaoPolling(true);
+  }catch(err){
+    toast('Erro: ' + err.message);
+    $('#btnSolicitarLiberacao').disabled = false;
+    $('#btnSolicitarLiberacao').textContent = 'Solicitar liberação';
   }
-  // senha confere?
-  const senhaInformada = (document.getElementById('inputSenha').value || '').trim();
+}
+
+function startLiberacaoPolling(justRequested=false){
+  if(pollId) clearInterval(pollId);
+  // feedback
+  if(justRequested){
+    const box = $('#avisoExpirado');
+    box.style.display = 'block';
+    box.innerHTML = '⏳ Aguardando liberação da empresa… (verificando a cada 10s)';
+  }
+  const check = async ()=>{
+    try{
+      const url = `${URL_COTACAO}?action=checar_liberacao&empresa=${encodeURIComponent(empresa)}&fornecedor=${encodeURIComponent(fornecedor)}&painel=${encodeURIComponent(painel)}`;
+      const r = await fetch(url);
+      const j = await r.json();
+      if(j.ok && j.liberado){
+        applyLiberatedUI();
+        clearInterval(pollId); pollId=null;
+      }
+    }catch{}
+  };
+  check();
+  pollId = setInterval(check, POLL_MS);
+}
+
+function applyLiberatedUI(){
+  // reinicia janela de 1h, libera formulário
+  resetOpenTime();
+  startCountdown();
+  $('#avisoExpirado').style.display='none';
+  $('#btnSolicitarLiberacao').style.display='none';
+  disableForm(false);
+  toast('✅ Liberação concedida. Você tem 1 hora para enviar a cotação.');
+}
+
+/* =================== Envio & senha =================== */
+$('#formRespostas').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if(isExpired()){ onExpiredUI(); return; }
+
+  const senhaInformada = ($('#inputSenha').value || '').trim();
   const senhaEsperada  = SENHAS[fornecedor] || "";
   if(!senhaInformada || senhaInformada !== senhaEsperada){
-    alert("Senha inválida para o fornecedor selecionado.");
+    toast("Senha inválida para o fornecedor selecionado.");
     return;
   }
-  // já foi enviado?
   if(blockIfAlreadySent()) return;
 
   const linhas = document.querySelectorAll('#tbody tr');
-  if(!linhas.length){ alert('Nada para enviar.'); return; }
+  if(!linhas.length){ toast('Nada para enviar.'); return; }
 
   showOverlay(true);
   let enviados = 0, erros = [];
@@ -290,8 +322,7 @@ document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
     const inputPreco = ln.querySelector('input.money');
     const precoStr   = normalizeMoneyInputString(inputPreco.value);
     const obs        = ln.querySelector('input.obs').value || "";
-
-    if(precoStr === "") continue; // só envia linhas preenchidas
+    if(precoStr === "") continue;
 
     const payload = {
       action: "responder_fornecedor",
@@ -301,7 +332,9 @@ document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
       fornecedor,
       preco: precoStr,
       observacoes: obs,
-      empresa
+      empresa,
+      painelCodigo: painel,
+      senha: senhaInformada // 🔐 validada pelo GAS
     };
 
     try{
@@ -313,33 +346,27 @@ document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
       const out = await res.json();
       if(out.ok){ enviados += (out.count || 1); }
       else{ erros.push(out.error || 'Falha desconhecida'); }
-    }catch(err){
-      erros.push(String(err));
-    }
+    }catch(err){ erros.push(String(err)); }
   }
 
   showOverlay(false);
 
   if(erros.length){
-    alert(`⚠️ Enviadas: ${enviados}\nErros: ${erros.length}\n\nPrimeiro erro: ${erros[0]}`);
+    toast(`⚠️ Enviadas: ${enviados}\nErros: ${erros.length}\n\nPrimeiro erro: ${erros[0]}`);
     return;
   }
 
-  // marca como enviado e guarda histórico
   lsSet(keyBase + ":sent", { ts: Date.now(), fornecedor });
   pushHistory(enviados);
 
-  const info = document.getElementById('statusEnvio');
+  const info = $('#statusEnvio');
   info.style.display = 'block';
   info.innerHTML = `✅ ${enviados} respostas registradas por <b>${fornecedor}</b> em <b>${fmtData(Date.now())}</b>.`;
   disableForm(true);
 });
 
-/* ======= Botão “Solicitar liberação” (visual por ora) ======= */
-document.getElementById('btnSolicitarLiberacao').addEventListener('click', ()=>{
-  alert("Solicitação de liberação registrada localmente. A liberação deverá ser feita no painel de cotações.");
-  // Aqui futuramente podemos chamar o GAS: action=solicitar_liberacao com empresa/fornecedor/painel.
-});
+/* ======= Botão “Solicitar liberação” ======= */
+$('#btnSolicitarLiberacao').addEventListener('click', solicitarLiberacao);
 </script>
 </body>
 </html>
