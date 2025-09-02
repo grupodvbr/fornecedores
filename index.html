@@ -76,7 +76,7 @@
 
     .inline-tip{color:var(--muted);font-size:.85rem;text-align:center;margin-top:6px;display:none}
 
-    /* Barra fixa (MOBILE) - somente no fim da página (fixa no rodapé) */
+    /* Barra fixa (MOBILE) */
     .fabbar{
       position:fixed;left:0;right:0;bottom:0;padding:8px 10px;
       background:linear-gradient(180deg,transparent,rgba(2,6,23,.92) 18%,rgba(2,6,23,.98));
@@ -88,7 +88,7 @@
       background:linear-gradient(180deg,var(--brand),var(--brand-2));box-shadow:0 10px 24px rgba(37,99,235,.35);cursor:pointer}
     .btn-gray{background:#1f2937;border:1px solid #334155;color:#e5e7eb}
 
-    /* Rodapé DESKTOP no final da página */
+    /* Rodapé DESKTOP */
     .pagefooter{display:none; margin:14px auto 0; padding:12px; border:1px solid rgba(148,163,184,.12);
       border-radius:12px; background:#0d1629}
     .footer-inner{max-width:980px; margin:auto; display:flex; gap:10px; align-items:center; justify-content:flex-end}
@@ -101,7 +101,7 @@
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:999}
     .overlay .card{background:#0b1220;padding:16px 18px;border-radius:12px;border:1px solid rgba(148,163,184,.18);font-weight:700}
 
-    /* Responsividade: mobile usa barra fixa; desktop usa footer no final */
+    /* Responsividade */
     @media (max-width:639px){ .cards{display:grid} .fabbar{display:block} }
     @media (min-width:640px){ .table-wrap{display:block} .pagefooter{display:block} }
   </style>
@@ -111,7 +111,7 @@
   <h1 id="titulo">Responder Cotação</h1>
   <p id="info" class="subtitle">Faça login para visualizar os itens.</p>
 
-  <!-- LOGIN (compacto) -->
+  <!-- LOGIN -->
   <div class="toolbar" id="toolbar">
     <div class="field">
       <label>Fornecedor</label>
@@ -130,7 +130,7 @@
   <div id="statusEnvio" class="success" style="display:none"></div>
   <div id="avisoExpirado" class="notice" style="display:none"></div>
 
-  <!-- LISTA: DESKTOP -->
+  <!-- DESKTOP -->
   <div class="table-wrap" id="tableWrap">
     <table>
       <thead>
@@ -140,12 +140,12 @@
     </table>
   </div>
 
-  <!-- LISTA: MOBILE -->
+  <!-- MOBILE -->
   <div class="cards" id="cards"></div>
 
   <p id="dicaMascara" class="inline-tip">Dica: digite apenas números. Ex.: “1234” vira “12,34”.</p>
 
-  <!-- Rodapé DESKTOP — sempre no final da página -->
+  <!-- Rodapé DESKTOP -->
   <div class="pagefooter" id="footerDesk">
     <div class="footer-inner">
       <div class="time" id="timerDesk">⏱️ 60:00</div>
@@ -155,7 +155,7 @@
   </div>
 </div>
 
-<!-- Barra fixa (MOBILE) -->
+<!-- Barra fixa MOBILE -->
 <div class="fabbar" id="fab">
   <div class="fabinner">
     <div class="time" id="timer">⏱️ 60:00</div>
@@ -169,7 +169,7 @@
 
 <script>
 /* ===== CONFIG ===== */
-const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzuwVfdY6wwl-MgkTqrcdRmXdfCnrVgqglAEr7wYyx-e9s3WlZisMxfqc3qGrMXotaN/exec";
+const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzjA0wxQDANQERLWRy3gXhWoL30nnVBWO8v5x7L-ktFkgtQYl9m4WncYRPFUqR3hkjw/exec";
 const VALIDADE_MS = 60*60*1000;
 
 /* ===== Estado ===== */
@@ -215,15 +215,14 @@ function renderCountdown(){
   const left=VALIDADE_MS-(Date.now()-abriuEm);
   const m=Math.max(0,Math.floor(left/60000)), s=Math.max(0,Math.floor((left%60000)/1000));
   const txt = left<=0 ? '⛔ Expirado' : `⏱️ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  const t1=$('timer'); if(t1) t1.textContent=txt;
-  const t2=$('timerDesk'); if(t2) t2.textContent=txt;
+  const t1=$('timer'); if(t1) t1.textContent=txt; const t2=$('timerDesk'); if(t2) t2.textContent=txt;
 }
 function startCountdown(){
   if(timerId) clearInterval(timerId); renderCountdown();
   timerId=setInterval(()=>{renderCountdown(); if(isExpiredLocal()){onExpiredUI(); clearInterval(timerId)}},1000);
 }
 
-/* ===== Servidor / liberação ===== */
+/* ===== Servidor / liberação (opcional) ===== */
 async function checkServerLiberation(){
   try{
     const u=`${URL_COTACAO}?action=checar_liberacao&empresa=${encodeURIComponent(empresa)}&fornecedor=${encodeURIComponent(fornecedor)}&painel=${encodeURIComponent(painel)}`;
@@ -299,10 +298,8 @@ function shrinkNav(){
 async function enterLoggedState(){
   setOpenTimeIfMissing(); startCountdown(); shrinkNav();
   $('dicaMascara').style.display='block';
-  // exibe controles de envio no final (mobile e desktop)
   $('fab').style.display = isMobile() ? 'block' : 'none';
   $('footerDesk').style.display = isMobile() ? 'none' : 'block';
-
   await carregarItens(); renderList(); blockIfAlreadySent();
   $('info').textContent=`Itens liberados durante a janela.`;
 }
@@ -310,7 +307,6 @@ function onExpiredUI(){
   lsDel(keyBase+":logged");
   $('avisoExpirado').style.display='block';
   $('avisoExpirado').innerHTML="⛔ Janela expirada. Solicite liberação no painel.";
-  // mostra botões de solicitar liberação
   $('btnSolicitarLiberacao').style.display='';
   $('btnSolicitarLiberacaoDesk').style.display='';
   disableSendButtons(true);
@@ -354,7 +350,7 @@ async function carregarItens(){
   else{ itens=j.items; $('info').textContent=`Exibindo ${itens.length} itens para cotação`; }
 }
 
-/* ===== Validar login ===== */
+/* ===== Validar login (só pede senha aqui) ===== */
 async function validarFornecedor(){
   const senha=($('inputSenha').value||'').trim();
   if(!fornecedor){ alert('Selecione o fornecedor.'); return false }
@@ -369,7 +365,7 @@ async function validarFornecedor(){
 $('btnValidar').addEventListener('click',()=>validarFornecedor());
 $('inputSenha').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); validarFornecedor(); }});
 
-/* ===== Liberação ===== */
+/* ===== Liberação (opcional) ===== */
 function wireSolicitarLiberacaoButtons(){
   const handler = async ()=>{
     if(!fornecedor){ alert('Selecione o fornecedor.'); return; }
@@ -385,6 +381,78 @@ function wireSolicitarLiberacaoButtons(){
 }
 wireSolicitarLiberacaoButtons();
 
+/* ===== Envio (JSON + confirmação) ===== */
+function wireEnviarButtons(){
+  const handler = async ()=>{
+    if(!isLogged()){ alert('Faça login novamente.'); return; }
+    if(isExpiredLocal()){ const ok=await checkServerLiberation(); if(!ok){ onExpiredUI(); return; } }
+    if(blockIfAlreadySent()) return;
+
+    const roots = isMobile()
+      ? document.querySelectorAll('#cards .card')
+      : document.querySelectorAll('#tbody tr');
+
+    if(!roots.length){ alert('Nada para enviar.'); return; }
+
+    // Coleta apenas itens com preço
+    const itensPayload = [];
+    roots.forEach(root=>{
+      const priceEl = root.querySelector('input.money');
+      const cents   = priceEl?.dataset?.cents || '0';
+      if(parseInt(cents,10) <= 0) return;
+      itensPayload.push({
+        rid:     priceEl.dataset.rid,
+        codigo:  priceEl.dataset.codigo,
+        produto: priceEl.dataset.produto,
+        preco:   centsToDotDecimal(cents), // "12.34"
+        obs:     (root.querySelector('.obs')?.value)||''
+      });
+    });
+
+    if(itensPayload.length === 0){
+      alert('Informe pelo menos um preço para enviar.');
+      return;
+    }
+
+    if(!confirm(`Você deseja enviar ${itensPayload.length} resposta(s) para a planilha?`)) return;
+
+    showOverlay(true);
+    try{
+      const out = await (await fetch(URL_COTACAO,{
+        method:'POST',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body: JSON.stringify({
+          action:'responder_json',
+          fornecedor,
+          empresa,               // empresa logada (do link/session)
+          painelCodigo:painel,
+          itens: itensPayload
+        })
+      })).json();
+
+      showOverlay(false);
+
+      if(!out?.ok){
+        alert('Falha no envio: ' + (out?.error || 'erro desconhecido'));
+        return;
+      }
+
+      lsSet(keyBase+":sent",{ts:Date.now(),fornecedor});
+      pushHistory(out.count || itensPayload.length);
+      $('statusEnvio').style.display='block';
+      $('statusEnvio').innerHTML =
+        `✅ ${out.count || itensPayload.length} respostas registradas por <b>${fornecedor}</b> em <b>${fmtData(Date.now())}</b>.`;
+      disableSendButtons(true);
+    }catch(e){
+      showOverlay(false);
+      alert('Erro ao enviar: ' + e.message);
+    }
+  };
+
+  ['btnEnviar','btnEnviarDesk'].forEach(id=>{
+    const el=$(id); if(el){ el.addEventListener('click',handler); el.classList.add('btn-enviar'); }
+  });
+}
 wireEnviarButtons();
 </script>
 </body>
