@@ -40,7 +40,7 @@
 <body>
   <div class="box">
     <h1 id="titulo">Responder Cotação</h1>
-    <p id="info">Carregando cotações pendentes…</p>
+    <p id="info">Faça login para visualizar os itens.</p>
 
     <!-- Toolbar -->
     <div class="toolbar">
@@ -48,14 +48,13 @@
         <select id="selFornecedor"></select>
       </label>
       <label>Senha:
-        <!-- sem pattern para não bloquear vírgula/ponto; abre teclado numérico no mobile -->
         <input id="inputSenha" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="Digite a senha">
       </label>
       <button id="btnValidar" class="btn-secondary" type="button">Validar fornecedor</button>
-      <span class="hint">Selecione o fornecedor e informe a senha para enviar.</span>
+      <span class="hint">Os itens só aparecem após o login e permanecem até o fim da janela.</span>
     </div>
 
-    <!-- Mostra “empresa logada” após validar -->
+    <!-- “Empresa logada” depois de validar -->
     <div id="badgeLogin" class="badge" style="display:none">✅ Logado</div>
 
     <div id="statusEnvio" class="success" style="display:none"></div>
@@ -74,8 +73,8 @@
         </thead>
         <tbody id="tbody"></tbody>
       </table>
-      <div class="inline-tip">Dica: no celular, digite apenas números. Ex.: “1234” vira “12,34”.</div>
-      <button id="btnEnviar" type="submit">📤 Enviar Respostas</button>
+      <div class="inline-tip" id="dicaMascara" style="display:none">Dica: no celular, digite apenas números. Ex.: “1234” vira “12,34”.</div>
+      <button id="btnEnviar" type="submit" style="display:none">📤 Enviar Respostas</button>
       <div class="actions">
         <button id="btnSolicitarLiberacao" type="button" class="btn-secondary" style="display:none">Solicitar liberação</button>
       </div>
@@ -100,9 +99,11 @@ let timerId = null;
 /* ============== Utils =============== */
 const lsGet = (k, def=null)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def }catch{ return def } };
 const lsSet = (k, v)=>localStorage.setItem(k, JSON.stringify(v));
+const lsDel = (k)=>localStorage.removeItem(k);
 const showOverlay = (on)=>{ document.getElementById('overlay').style.display = on ? 'flex' : 'none'; };
 const disableForm = (on)=>{ document.querySelectorAll('#formRespostas input, #formRespostas button[type=submit]').forEach(el=>el.disabled=on); };
 const fmtData = (dt)=>{ try{ return new Date(dt).toLocaleString('pt-BR'); }catch{ return String(dt); } };
+const showElems = (on, ...ids)=>ids.forEach(id=>document.getElementById(id).style.display = on ? '' : 'none');
 
 /* ====== Máscara: só números → “12,34” ====== */
 function centsToBR(vCents){
@@ -116,8 +117,8 @@ function centsToBR(vCents){
 }
 function moneyBindInputs(){
   document.querySelectorAll('input.money').forEach(inp=>{
-    inp.type = "text";                // evita validações de pattern
-    inp.inputMode = "decimal";        // teclado decimal no mobile
+    inp.type = "text";
+    inp.inputMode = "decimal";
     inp.autocomplete = "off";
     inp.spellcheck = false;
 
@@ -125,7 +126,6 @@ function moneyBindInputs(){
     inp.value = centsToBR(parseInt(inp.dataset.cents,10)||0);
 
     inp.addEventListener('input', ()=>{
-      // aceita numpad, vírgula, ponto… mas mantemos só dígitos (centavos)
       const digits = (inp.value.replace(/\D/g,'') || "0").replace(/^0+(?=\d)/,'');
       const cents = parseInt(digits,10) || 0;
       inp.dataset.cents = String(cents);
@@ -139,7 +139,7 @@ function centsToDotDecimal(cents){
   return v.toFixed(2);
 }
 
-/* ====== Janela local / expiração ====== */
+/* ====== Sessão / janela ====== */
 function setOpenTimeIfMissing(){
   const k = keyBase + ":openTs";
   let ts = lsGet(k, null);
@@ -147,6 +147,8 @@ function setOpenTimeIfMissing(){
   abriuEm = ts;
 }
 function isExpiredLocal(){ return abriuEm ? (Date.now() - abriuEm) > VALIDADE_MS : false; }
+function isLogged(){ return !!lsGet(keyBase + ":logged", null) && !isExpiredLocal(); }
+
 function renderCountdown(){
   const el = document.getElementById('timer');
   if(!abriuEm){ el.style.display='none'; return; }
@@ -162,17 +164,10 @@ function startCountdown(){
   timerId = setInterval(()=>{
     renderCountdown();
     if(isExpiredLocal()){
-      onExpiredUI();
+      onExpiredUI(); // encerra sessão e oculta itens
       clearInterval(timerId);
     }
   }, 1000);
-}
-function onExpiredUI(){
-  const box = document.getElementById('avisoExpirado');
-  box.style.display = 'block';
-  box.innerHTML = "⛔ O link de cotação <b>expirou</b>. Peça a liberação no painel de cotações.";
-  disableForm(true);
-  document.getElementById('btnSolicitarLiberacao').style.display = 'inline-block';
 }
 
 /* ====== Liberação servidor ====== */
@@ -183,16 +178,6 @@ async function checkServerLiberation(){
     const j = await r.json();
     return !!(j && j.ok && j.liberado);
   }catch{ return false; }
-}
-async function ensureAuthorized(){
-  if(!isExpiredLocal()) return true; // ainda na 1ª hora
-  const ok = await checkServerLiberation();
-  if(!ok){ onExpiredUI(); return false; }
-  document.getElementById('avisoExpirado').style.display = 'none';
-  disableForm(false);
-  document.getElementById('btnSolicitarLiberacao').style.display = 'none';
-  document.getElementById('timer').style.display = 'none';
-  return true;
 }
 
 /* ====== Histórico / bloqueio duplicado ====== */
@@ -214,6 +199,61 @@ function pushHistory(enviados){
   lsSet(k, arr);
 }
 
+/* ====== UI: entrar/sair logado ====== */
+function lockLoginControls(on){
+  document.getElementById('selFornecedor').disabled = on;
+  document.getElementById('inputSenha').disabled = on;
+  document.getElementById('btnValidar').disabled = on;
+  if(on){
+    document.getElementById('selFornecedor').title = "Bloqueado até acabar a janela";
+    document.getElementById('inputSenha').title = "Bloqueado até acabar a janela";
+    document.getElementById('btnValidar').title = "Bloqueado até acabar a janela";
+  }else{
+    document.getElementById('selFornecedor').removeAttribute('title');
+    document.getElementById('inputSenha').removeAttribute('title');
+    document.getElementById('btnValidar').removeAttribute('title');
+  }
+}
+async function enterLoggedState(){
+  // inicia janela e exibe itens
+  setOpenTimeIfMissing();
+  startCountdown();
+  lockLoginControls(true);
+  const badge = document.getElementById('badgeLogin');
+  badge.textContent = `✅ Logado como ${fornecedor} | Empresa: ${empresa || '—'}`;
+  badge.style.display = 'inline-flex';
+
+  // mostra elementos da grade/salvar
+  showElems(true, 'btnEnviar', 'dicaMascara');
+
+  // carrega itens só agora
+  await carregarItens();
+
+  // se já enviou, travamos inputs (mas a lista permanece visível)
+  blockIfAlreadySent();
+
+  document.getElementById('info').textContent = `Itens liberados durante a janela.`;
+}
+function onExpiredUI(){
+  // fim da janela: derruba sessão e oculta itens
+  lsDel(keyBase + ":logged");
+  const box = document.getElementById('avisoExpirado');
+  box.style.display = 'block';
+  box.innerHTML = "⛔ A janela expirou. Solicite liberação no painel de cotações.";
+  disableForm(true);
+  document.getElementById('btnSolicitarLiberacao').style.display = 'inline-block';
+  document.getElementById('timer').style.display = 'block';
+
+  // oculta itens e botão de envio
+  document.getElementById('tbody').innerHTML = '';
+  showElems(false, 'btnEnviar', 'dicaMascara');
+
+  // reabilita login para uma nova janela/liberação
+  lockLoginControls(false);
+  document.getElementById('badgeLogin').style.display = 'none';
+  document.getElementById('info').textContent = "Faça login para visualizar os itens.";
+}
+
 /* =================== Carregamento =================== */
 window.addEventListener('load', async ()=>{
   const p = new URLSearchParams(location.search);
@@ -227,14 +267,16 @@ window.addEventListener('load', async ()=>{
   await carregarListaFornecedores(fornecedorUrl);
   document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor || '(selecione)'}`;
 
-  setOpenTimeIfMissing();
-  startCountdown();
-
-  if(blockIfAlreadySent()) return;
-  const autorizado = await ensureAuthorized();
-  if(!autorizado) return;
-
-  await carregarItens();
+  // se havia sessão válida, volta logado (e só sai quando esgotar)
+  const openTs = lsGet(keyBase + ":openTs", null);
+  if(openTs){ abriuEm = openTs; }
+  if(isLogged()){
+    await enterLoggedState();
+  }else{
+    // garante que, sem login, nada apareça
+    document.getElementById('tbody').innerHTML = '';
+    showElems(false, 'btnEnviar', 'dicaMascara');
+  }
 });
 
 async function carregarListaFornecedores(pref){
@@ -271,10 +313,10 @@ async function carregarListaFornecedores(pref){
       keyBase = `cotacao:${empresa}:${fornecedor}:${painel}`;
       document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor}`;
       document.getElementById('statusEnvio').style.display = 'none';
-      disableForm(false);
-      blockIfAlreadySent();
-      // limpa badge ao trocar fornecedor
       document.getElementById('badgeLogin').style.display = 'none';
+      // troca de fornecedor sem login → mantém itens ocultos
+      document.getElementById('tbody').innerHTML = '';
+      showElems(false, 'btnEnviar', 'dicaMascara');
     });
   }catch(e){
     alert("Erro ao carregar fornecedores: "+e.message);
@@ -282,11 +324,14 @@ async function carregarListaFornecedores(pref){
 }
 
 async function carregarItens(){
+  // segurança extra: só carrega se logado
+  if(!isLogged()) return;
   try{
     const res = await fetch(`${URL_COTACAO}?action=listar_fornecedores&empresa=${encodeURIComponent(empresa)}`);
     const out = await res.json();
     if(!out.ok || !out.items || out.items.length===0){
       document.getElementById('info').textContent = "✅ Nenhuma cotação pendente.";
+      document.getElementById('tbody').innerHTML = '';
       return;
     }
     itens = out.items;
@@ -318,7 +363,7 @@ function renderTabela(){
   moneyBindInputs();
 }
 
-/* ============ Validação (mostra “empresa logada”) ============ */
+/* ============ Login (validação no GAS) ============ */
 async function validarFornecedor(){
   const senha = (document.getElementById('inputSenha').value || '').trim();
   if(!fornecedor){ alert("Selecione o fornecedor."); return false; }
@@ -331,9 +376,9 @@ async function validarFornecedor(){
     });
     const out = await res.json();
     if(out && out.ok){
-      const badge = document.getElementById('badgeLogin');
-      badge.textContent = `✅ Logado como ${fornecedor} | Empresa: ${empresa || '—'}`;
-      badge.style.display = 'inline-flex';
+      // marca sessão logada, inicia janela e mostra itens
+      lsSet(keyBase + ":logged", { ts: Date.now(), fornecedor });
+      await enterLoggedState();
       return true;
     }
     alert("Senha inválida para o fornecedor selecionado.");
@@ -343,12 +388,9 @@ async function validarFornecedor(){
     return false;
   }
 }
-document.getElementById('btnValidar').addEventListener('click', async ()=>{
-  const ok = await validarFornecedor();
-  if(ok) {/* badge já é mostrado na função */}
-});
+document.getElementById('btnValidar').addEventListener('click', ()=>{ validarFornecedor(); });
 document.getElementById('inputSenha').addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('btnValidar').click(); }
+  if(e.key === 'Enter'){ e.preventDefault(); validarFornecedor(); }
 });
 
 /* =================== Solicitar liberação =================== */
@@ -372,12 +414,15 @@ document.getElementById('btnSolicitarLiberacao').addEventListener('click', async
 document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
   e.preventDefault();
 
-  const autorizado = await ensureAuthorized();
-  if(!autorizado) return;
+  // precisa estar logado e ainda dentro da janela
+  if(!isLogged()){ alert("Faça login novamente para enviar."); return; }
+  if(isExpiredLocal()){
+    // tenta liberação do painel (segundo estágio)
+    const ok = await checkServerLiberation();
+    if(!ok){ onExpiredUI(); return; }
+  }
 
-  const okSenha = await validarFornecedor();
-  if(!okSenha) return;
-
+  // bloqueio duplicado
   if(blockIfAlreadySent()) return;
 
   const linhas = document.querySelectorAll('#tbody tr');
@@ -390,7 +435,6 @@ document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
     const priceEl = ln.querySelector('input.money');
     const cents   = priceEl.dataset.cents || "0";
     const obs     = ln.querySelector('input.obs').value || "";
-
     if(parseInt(cents,10) <= 0) continue;
 
     const payload = {
@@ -399,7 +443,7 @@ document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
       produtoCodigo: priceEl.dataset.codigo,
       produtoNome: priceEl.dataset.produto,
       fornecedor,
-      senha: (document.getElementById('inputSenha').value || '').trim(),
+      // senha não é revalidada aqui; login já foi feito
       preco: centsToDotDecimal(cents),
       observacoes: obs,
       empresa,
