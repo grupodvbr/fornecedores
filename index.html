@@ -1,27 +1,31 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Responder Cotação</title>
-  <style>
-    body { font-family: "Inter", Arial, sans-serif; background: #f9fafb; margin: 0; padding: 20px; }
-    .box { max-width: 900px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.1); }
-    h1 { text-align: center; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background: #2563eb; color: #fff; }
-    input, button { padding: 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95em; }
-    input.money { width: 120px; text-align: right; }
-    input[type=text] { width: 100%; }
-    button { background: #2563eb; color: #fff; cursor: pointer; margin-top: 15px; width: 100%; font-size: 1em; }
-    button:hover { background: #1d4ed8; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Responder Cotação</title>
+<style>
+  body{font-family:Inter,Arial,sans-serif;background:#f9fafb;margin:0;padding:20px}
+  .box{max-width:920px;margin:auto;background:#fff;padding:20px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  h1{text-align:center;margin:0 0 10px}
+  p#info{margin:6px 0 14px;color:#6b7280}
+  table{width:100%;border-collapse:collapse}
+  th,td{border:1px solid #e5e7eb;padding:8px}
+  th{background:#2563eb;color:#fff}
+  input,button{padding:8px;border:1px solid #d1d5db;border-radius:6px;font-size:15px}
+  input[type=text].money{width:120px;text-align:right}
+  input[type=text]{width:100%}
+  button[type=submit]{width:100%;margin-top:16px;background:#2563eb;color:#fff;cursor:pointer}
+  button[type=submit]:hover{background:#1d4ed8}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:999}
+  .overlay .card{background:#fff;padding:18px 22px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.25);font-weight:600}
+</style>
 </head>
 <body>
   <div class="box">
     <h1 id="titulo">Responder Cotação</h1>
-    <p id="info">Carregando cotações pendentes...</p>
+    <p id="info">Carregando cotações pendentes…</p>
+
     <form id="formRespostas">
       <table>
         <thead>
@@ -39,93 +43,126 @@
     </form>
   </div>
 
+  <div class="overlay" id="overlay"><div class="card">⏳ Salvando na planilha…</div></div>
+
 <script>
-const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzWocyBaA9BNVu5Fn-rG8sGAyspJDLoz_qvIzKOlgmUK7Cq8yKylNhFOT1_6_l6Iqsm/exec"; // 🔹 troque pelo seu URL do GAS
-let fornecedor="", empresa="", painel="";
+const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzRQ0GAmz9m_2F-Ms4DzLQWUqQvmlpBxeMpVOPoXvvuRx-VkjqZbSIVGSWTo2-okjvD/exec"; // 👈 TROQUE AQUI
+
+let fornecedor="", empresa="";
 let itens=[];
 
-window.onload = async () => {
-  const p = new URLSearchParams(window.location.search);
+window.addEventListener('load', async ()=>{
+  const p = new URLSearchParams(location.search);
   fornecedor = p.get("fornecedor") || "FORNECEDOR";
-  empresa = p.get("empresa") || "";
-  painel = p.get("painel") || "";
-  document.getElementById("titulo").innerText = `Responder Cotação - ${fornecedor}`;
+  empresa    = p.get("empresa")    || "";
+  document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor}`;
   await carregarItens();
-};
+});
 
-async function carregarItens() {
-  try {
-    const res = await fetch(`${URL_COTACAO}?action=listar_fornecedores&empresa=${encodeURIComponent(empresa)}&painel=${encodeURIComponent(painel)}`);
+function normalizeMoneyInputString(v){
+  if(!v) return "";
+  return String(v).replace(/\s/g,'').replace(',','.');
+}
+
+async function carregarItens(){
+  try{
+    const res = await fetch(`${URL_COTACAO}?action=listar_fornecedores&empresa=${encodeURIComponent(empresa)}`);
     const out = await res.json();
-    if (!out.ok || !out.items || !out.items.length) {
-      document.getElementById("info").innerHTML = "✅ Nenhuma cotação pendente.";
+    if(!out.ok || !out.items || out.items.length===0){
+      document.getElementById('info').textContent = "✅ Nenhuma cotação pendente.";
       return;
     }
     itens = out.items;
     render();
-    document.getElementById("info").innerHTML = `Exibindo ${itens.length} cotações pendentes`;
-  } catch (e) {
+    document.getElementById('info').textContent = `Exibindo ${itens.length} cotações pendentes`;
+  }catch(e){
     alert("Erro ao carregar itens: " + e.message);
   }
 }
 
-function render() {
-  const tb = document.getElementById("tbody");
+function render(){
+  const tb = document.getElementById('tbody');
   tb.innerHTML = "";
-  itens.forEach(it => {
-    const tr = document.createElement("tr");
+  itens.forEach(it=>{
+    const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${it.produto}</td>
-      <td>${it.quantidade}</td>
-      <td>${it.unidade}</td>
+      <td>${it.quantidade ?? ''}</td>
+      <td>${it.unidade ?? ''}</td>
       <td>
-        <input type="number" class="money" placeholder="0.00" step="0.01" inputmode="decimal" 
-               data-rid="${it.rid}" data-codigo="${it.codigo}" data-produto="${it.produto}">
+        <input type="text" class="money" inputmode="decimal" placeholder="0,00"
+               data-rid="${it.rid}" data-codigo="${it.codigo || ''}" data-produto="${it.produto}">
       </td>
-      <td><input type="text" placeholder="Observação"></td>
+      <td><input type="text" class="obs" placeholder="Observação"></td>
     `;
     tb.appendChild(tr);
   });
+
+  // máscara básica: somente dígitos, vírgula e ponto
+  document.querySelectorAll('input.money').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      let v = inp.value.replace(/[^\d.,]/g,'');
+      // não deixa mais de um separador decimal
+      const parts = v.split(/[.,]/);
+      if(parts.length>1){
+        v = parts.shift() + ',' + parts.join('');
+      }
+      inp.value = v;
+    });
+  });
 }
 
-document.getElementById("formRespostas").onsubmit = async (e) => {
-  e.preventDefault();
-  const linhas = document.querySelectorAll("#tbody tr");
-  let enviados = 0;
+function showOverlay(on){ document.getElementById('overlay').style.display = on ? 'flex' : 'none'; }
 
-  for (const ln of linhas) {
-    const preco = ln.querySelector("input.money").value;
-    const obs = ln.querySelector("input[type=text]").value;
-    const input = ln.querySelector("input.money");
-    if (preco === "" || isNaN(Number(preco))) continue;
+document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const linhas = document.querySelectorAll('#tbody tr');
+  if(!linhas.length){ alert('Nada para enviar.'); return; }
+
+  showOverlay(true);
+  let enviados = 0, erros = [];
+
+  for(const ln of linhas){
+    const inputPreco = ln.querySelector('input.money');
+    const precoStr   = normalizeMoneyInputString(inputPreco.value);
+    const obs        = ln.querySelector('input.obs').value || "";
+
+    // envia somente linhas com preço preenchido (>= 0,00 conta também)
+    if(precoStr === "") continue;
 
     const payload = {
       action: "responder_fornecedor",
-      rid: input.dataset.rid,
-      produtoCodigo: input.dataset.codigo,
-      produtoNome: input.dataset.produto,
+      rid: inputPreco.dataset.rid,
+      produtoCodigo: inputPreco.dataset.codigo,
+      produtoNome: inputPreco.dataset.produto,
       fornecedor,
-      preco,
+      preco: precoStr,           // GAS normaliza vírgula/ponto
       observacoes: obs,
-      empresa,
-      painelCodigo: painel
+      empresa
     };
 
-    try {
+    try{
       const res = await fetch(URL_COTACAO, {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
+        headers: {"Content-Type":"text/plain;charset=utf-8"},
         body: JSON.stringify(payload)
       });
       const out = await res.json();
-      if (out.ok) enviados += (out.count || 0);
-    } catch (e) {
-      console.error("Erro ao enviar:", e);
+      if(out.ok){ enviados += (out.count || 1); }
+      else{ erros.push(out.error || 'Falha desconhecida'); }
+    }catch(err){
+      erros.push(String(err));
     }
   }
 
-  alert(`✅ ${enviados} respostas registradas para ${fornecedor}`);
-};
+  showOverlay(false);
+
+  if(erros.length){
+    alert(`⚠️ Enviadas: ${enviados}\nErros: ${erros.length}\n\nPrimeiro erro: ${erros[0]}`);
+  }else{
+    alert(`✅ ${enviados} respostas registradas para ${fornecedor}`);
+  }
+});
 </script>
 </body>
 </html>
