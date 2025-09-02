@@ -14,7 +14,6 @@
     body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;background:#0b1220;color:var(--txt);padding:10px}
     .shell{max-width:980px;margin:auto}
 
-    /* HEADER ULTRA COMPACTO */
     .hero{
       border:1px solid rgba(148,163,184,.12);
       border-radius:14px;
@@ -25,7 +24,6 @@
     h1{margin:0;text-align:center;font-weight:800;letter-spacing:.2px;font-size:1.12rem}
     .subtitle{margin:4px 0 0;color:var(--muted);text-align:center;font-size:.88rem}
 
-    /* TOOLBAR COMPACTA (LOGIN) */
     .toolbar{
       margin:8px 0 6px; display:grid; grid-template-columns:1fr 1fr auto; gap:6px;
     }
@@ -42,7 +40,6 @@
       padding:0 12px; font-weight:700; cursor:pointer; white-space:nowrap;
     }
 
-    /* MINI-BARRA APÓS LOGIN */
     .minibar{
       display:none; align-items:center; justify-content:center; gap:8px;
       background:#0b1220; border:1px solid rgba(148,163,184,.12);
@@ -53,14 +50,12 @@
     .notice{background:var(--warnbg);color:#ffcc66;border:1px solid rgba(245,158,11,.35)}
     .success{background:var(--okbg);color:#34d399;border:1px solid rgba(16,185,129,.35)}
 
-    /* DESKTOP: tabela com scroll */
     .table-wrap{display:none;width:100%;overflow:auto;border:1px solid var(--bd);border-radius:12px;background:var(--soft)}
     table{width:100%;border-collapse:collapse;min-width:900px}
     th,td{border-bottom:1px solid var(--bd);padding:10px}
     th{position:sticky;top:0;background:#0d1629}
     .money{width:150px;text-align:right}
 
-    /* MOBILE: cards */
     .cards{display:none;gap:10px;margin-top:6px}
     .card{
       background:linear-gradient(180deg,#0e182f,#0b1220);
@@ -76,7 +71,6 @@
 
     .inline-tip{color:var(--muted);font-size:.85rem;text-align:center;margin-top:6px;display:none}
 
-    /* Barra fixa (MOBILE) */
     .fabbar{
       position:fixed;left:0;right:0;bottom:0;padding:8px 10px;
       background:linear-gradient(180deg,transparent,rgba(2,6,23,.92) 18%,rgba(2,6,23,.98));
@@ -88,7 +82,6 @@
       background:linear-gradient(180deg,var(--brand),var(--brand-2));box-shadow:0 10px 24px rgba(37,99,235,.35);cursor:pointer}
     .btn-gray{background:#1f2937;border:1px solid #334155;color:#e5e7eb}
 
-    /* Rodapé DESKTOP */
     .pagefooter{display:none; margin:14px auto 0; padding:12px; border:1px solid rgba(148,163,184,.12);
       border-radius:12px; background:#0d1629}
     .footer-inner{max-width:980px; margin:auto; display:flex; gap:10px; align-items:center; justify-content:flex-end}
@@ -97,11 +90,9 @@
     .footer-send{background:linear-gradient(180deg,var(--brand),var(--brand-2))}
     .footer-gray{background:#1f2937;border:1px solid #334155}
 
-    /* Overlay */
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:999}
     .overlay .card{background:#0b1220;padding:16px 18px;border-radius:12px;border:1px solid rgba(148,163,184,.18);font-weight:700}
 
-    /* Responsividade */
     @media (max-width:639px){ .cards{display:grid} .fabbar{display:block} }
     @media (min-width:640px){ .table-wrap{display:block} .pagefooter{display:block} }
   </style>
@@ -111,7 +102,6 @@
   <h1 id="titulo">Responder Cotação</h1>
   <p id="info" class="subtitle">Faça login para visualizar os itens.</p>
 
-  <!-- LOGIN -->
   <div class="toolbar" id="toolbar">
     <div class="field">
       <label>Fornecedor</label>
@@ -124,13 +114,11 @@
     <button id="btnValidar" class="btn" type="button">Validar</button>
   </div>
 
-  <!-- Mini-bar depois do login -->
   <div id="miniBar" class="minibar">✅ Logado</div>
 
   <div id="statusEnvio" class="success" style="display:none"></div>
   <div id="avisoExpirado" class="notice" style="display:none"></div>
 
-  <!-- DESKTOP -->
   <div class="table-wrap" id="tableWrap">
     <table>
       <thead>
@@ -140,12 +128,10 @@
     </table>
   </div>
 
-  <!-- MOBILE -->
   <div class="cards" id="cards"></div>
 
   <p id="dicaMascara" class="inline-tip">Dica: digite apenas números. Ex.: “1234” vira “12,34”.</p>
 
-  <!-- Rodapé DESKTOP -->
   <div class="pagefooter" id="footerDesk">
     <div class="footer-inner">
       <div class="time" id="timerDesk">⏱️ 60:00</div>
@@ -155,7 +141,6 @@
   </div>
 </div>
 
-<!-- Barra fixa MOBILE -->
 <div class="fabbar" id="fab">
   <div class="fabinner">
     <div class="time" id="timer">⏱️ 60:00</div>
@@ -164,12 +149,11 @@
   </div>
 </div>
 
-<!-- Overlay -->
 <div class="overlay" id="overlay"><div class="card">⏳ Salvando na planilha…</div></div>
 
 <script>
 /* ===== CONFIG ===== */
-const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzjA0wxQDANQERLWRy3gXhWoL30nnVBWO8v5x7L-ktFkgtQYl9m4WncYRPFUqR3hkjw/exec";
+const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzoJWR_CZtaiwMoQ-XrWcVsi5Ww4ACSDH4lvRjMhXZm7VuneTEoBnHMkiK49JSR4Evq/exec";
 const VALIDADE_MS = 60*60*1000;
 
 /* ===== Estado ===== */
@@ -193,6 +177,16 @@ function centsToBR(c){
   return (neg?'-':'') + i.replace(/\B(?=(\d{3})+(?!\d))/g,'.') + ',' + d;
 }
 function centsToDotDecimal(c){ return ((parseInt(c,10)||0)/100).toFixed(2); }
+function readCentsFromInput(inp){
+  // Confere dataset.cents; se falhar, recalc a partir do valor visível
+  let c = inp?.dataset?.cents;
+  if (c == null || c === '' || isNaN(parseInt(c,10))){
+    const digits=(inp.value||'').toString().replace(/\D/g,'') || '0';
+    c = String(parseInt(digits,10)||0);
+    inp.dataset.cents = c;
+  }
+  return parseInt(c,10)||0;
+}
 function bindMoneyInputs(scope=document){
   scope.querySelectorAll('input.money').forEach(inp=>{
     inp.type='text'; inp.inputMode='decimal'; inp.autocomplete='off'; inp.spellcheck=false;
@@ -222,7 +216,7 @@ function startCountdown(){
   timerId=setInterval(()=>{renderCountdown(); if(isExpiredLocal()){onExpiredUI(); clearInterval(timerId)}},1000);
 }
 
-/* ===== Servidor / liberação (opcional) ===== */
+/* ===== Liberação (opcional) ===== */
 async function checkServerLiberation(){
   try{
     const u=`${URL_COTACAO}?action=checar_liberacao&empresa=${encodeURIComponent(empresa)}&fornecedor=${encodeURIComponent(fornecedor)}&painel=${encodeURIComponent(painel)}`;
@@ -346,8 +340,21 @@ async function carregarFornecedores(pref){
 async function carregarItens(){
   if(!isLogged()) return;
   const j=await (await fetch(`${URL_COTACAO}?action=listar_fornecedores&empresa=${encodeURIComponent(empresa)}`)).json();
-  if(!j.ok || !Array.isArray(j.items) || !j.items.length){ $('info').textContent='✅ Nenhuma cotação pendente.'; itens=[]; }
-  else{ itens=j.items; $('info').textContent=`Exibindo ${itens.length} itens para cotação`; }
+  if(!j.ok || !Array.isArray(j.items) || !j.items.length){
+    $('info').textContent='✅ Nenhuma cotação pendente.'; itens=[];
+  } else {
+    itens=j.items;
+    // ⚙️ Se empresa não veio na URL, deduz da primeira linha carregada
+    if(!empresa && itens.length && itens[0].empresa){
+      empresa = itens[0].empresa;
+      keyBase = `cotacao:${empresa}:${fornecedor}:${painel}`;
+      // Atualiza minibarra se já logado
+      if(isLogged()){
+        $('miniBar').textContent=`✅ ${fornecedor} • ${empresa}`;
+      }
+    }
+    $('info').textContent=`Exibindo ${itens.length} itens para cotação`;
+  }
 }
 
 /* ===== Validar login (só pede senha aqui) ===== */
@@ -398,8 +405,8 @@ function wireEnviarButtons(){
     const itensPayload = [];
     roots.forEach(root=>{
       const priceEl = root.querySelector('input.money');
-      const cents   = priceEl?.dataset?.cents || '0';
-      if(parseInt(cents,10) <= 0) return;
+      const cents   = readCentsFromInput(priceEl); // ✅ robusto
+      if(cents <= 0) return;
       itensPayload.push({
         rid:     priceEl.dataset.rid,
         codigo:  priceEl.dataset.codigo,
@@ -424,7 +431,7 @@ function wireEnviarButtons(){
         body: JSON.stringify({
           action:'responder_json',
           fornecedor,
-          empresa,               // empresa logada (do link/session)
+          empresa,               // ⚙️ já definida (URL ou deduzida dos itens)
           painelCodigo:painel,
           itens: itensPayload
         })
