@@ -40,7 +40,7 @@
   </div>
 
 <script>
-const URL_COTACAO = "https://script.google.com/macros/s/AKfycbwwYNIJCxQIiRydd8mc_Bp5wi1AP8gRVE6Hz2W0tMZB0ohnLkxvTiBFl8pMCmmNIepG/exec"; 
+const URL_COTACAO = "https://script.google.com/macros/s/AKfycbwB8E9Jf5YFOuTMUXFE9lSwtDaPJA-1qj5lXf1DNmRniIXfAjeMtdU0NCe6ZTuyjooH/exec"; // 🔹 troque pelo seu URL do GAS
 let fornecedor="", empresa="", painel="";
 let itens=[];
 
@@ -79,22 +79,12 @@ function render() {
       <td>${it.quantidade}</td>
       <td>${it.unidade}</td>
       <td>
-        <input type="text" class="money" placeholder="0.00" 
-               inputmode="decimal" pattern="\\d*(\\.\\d{0,2})?" 
-               data-produto="${it.produto}">
+        <input type="number" class="money" placeholder="0.00" step="0.01" inputmode="decimal" 
+               data-rid="${it.rid}" data-codigo="${it.codigo}" data-produto="${it.produto}">
       </td>
       <td><input type="text" placeholder="Observação"></td>
     `;
     tb.appendChild(tr);
-  });
-
-  // Máscara para aceitar só números e ponto
-  document.querySelectorAll("input.money").forEach(inp => {
-    inp.addEventListener("input", () => {
-      let v = inp.value.replace(/[^0-9.]/g, "");
-      if(v.split(".").length > 2) v = v.replace(/\.+$/, "");
-      inp.value = v;
-    });
   });
 }
 
@@ -107,10 +97,12 @@ document.getElementById("formRespostas").onsubmit = async (e) => {
     const preco = ln.querySelector("input.money").value;
     const obs = ln.querySelector("input[type=text]").value;
     const input = ln.querySelector("input.money");
-    if (!preco || Number(preco) <= 0) continue;
+    if (preco === "" || isNaN(Number(preco))) continue;
 
     const payload = {
       action: "responder_fornecedor",
+      rid: input.dataset.rid,
+      produtoCodigo: input.dataset.codigo,
       produtoNome: input.dataset.produto,
       fornecedor,
       preco,
@@ -126,7 +118,7 @@ document.getElementById("formRespostas").onsubmit = async (e) => {
         body: JSON.stringify(payload)
       });
       const out = await res.json();
-      if (out.ok) enviados++;
+      if (out.ok) enviados += (out.count || 0);
     } catch (e) {
       console.error("Erro ao enviar:", e);
     }
