@@ -2,7 +2,6 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <!-- Bloqueia zoom e abre teclado numérico corretamente no mobile -->
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>Responder Cotação</title>
   <style>
@@ -14,10 +13,11 @@
     body{font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--txt);margin:0;padding:20px}
     .box{max-width:980px;margin:auto;background:var(--card);padding:20px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
     h1{margin:0 0 8px;text-align:center}
-    p#info{margin:4px 0 16px;color:var(--muted);text-align:center}
-    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:8px 0 16px}
+    p#info{margin:4px 0 12px;color:var(--muted);text-align:center}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;margin:8px 0 10px}
     .toolbar select,.toolbar input{padding:10px 12px;border:1px solid var(--bd);border-radius:8px;font-size:15px}
-    .toolbar .hint{font-size:12px;color:var(--muted)}
+    .toolbar .hint{font-size:12px;color:var(--muted);width:100%;text-align:center}
+    .badge{display:inline-flex;align-items:center;gap:8px;background:var(--okbg);border:1px solid #6ee7b7;color:var(--ok);padding:8px 10px;border-radius:999px;font-size:14px;margin:6px auto 12px;justify-content:center}
     table{width:100%;border-collapse:collapse}
     th,td{border:1px solid var(--bd);padding:10px}
     th{background:var(--brand);color:#fff}
@@ -42,17 +42,21 @@
     <h1 id="titulo">Responder Cotação</h1>
     <p id="info">Carregando cotações pendentes…</p>
 
-    <!-- Toolbar: fornecedor (da planilha), senha e status -->
+    <!-- Toolbar -->
     <div class="toolbar">
       <label>Fornecedor:
         <select id="selFornecedor"></select>
       </label>
       <label>Senha:
-        <input id="inputSenha" type="password" inputmode="numeric" pattern="\\d*" placeholder="Digite a senha">
+        <!-- sem pattern para não bloquear vírgula/ponto; abre teclado numérico no mobile -->
+        <input id="inputSenha" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="Digite a senha">
       </label>
       <button id="btnValidar" class="btn-secondary" type="button">Validar fornecedor</button>
       <span class="hint">Selecione o fornecedor e informe a senha para enviar.</span>
     </div>
+
+    <!-- Mostra “empresa logada” após validar -->
+    <div id="badgeLogin" class="badge" style="display:none">✅ Logado</div>
 
     <div id="statusEnvio" class="success" style="display:none"></div>
     <div id="avisoExpirado" class="notice" style="display:none"></div>
@@ -83,72 +87,66 @@
 
 <script>
 /* ===================== CONFIG ===================== */
-// TROQUE pela URL do SEU WebApp (do GAS completo)
 const URL_COTACAO = "https://script.google.com/macros/s/AKfycbyq0tGr8djdAoO3i_PfYPdPAWHknqL_hsIiVV28A_YgmpBivbpsbbp3x3E4Vo0M-zqx/exec";
+const VALIDADE_MS = 60 * 60 * 1000; // 1h
 
-// 1 hora de validade local (ms)
-const VALIDADE_MS = 60 * 60 * 1000;
-
-/* ============== Variáveis de estado =============== */
+/* ============== Estado =============== */
 let fornecedor = "", empresa = "", painel = "";
 let itens = [];
-let keyBase = ""; // chave base de storage: cotacao:empresa:fornecedor:painel
+let keyBase = "";
 let abriuEm = null;
 let timerId = null;
 
-/* ===================== Utils ====================== */
+/* ============== Utils =============== */
 const lsGet = (k, def=null)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def }catch{ return def } };
 const lsSet = (k, v)=>localStorage.setItem(k, JSON.stringify(v));
 const showOverlay = (on)=>{ document.getElementById('overlay').style.display = on ? 'flex' : 'none'; };
 const disableForm = (on)=>{ document.querySelectorAll('#formRespostas input, #formRespostas button[type=submit]').forEach(el=>el.disabled=on); };
 const fmtData = (dt)=>{ try{ return new Date(dt).toLocaleString('pt-BR'); }catch{ return String(dt); } };
 
-/* ====== Máscara BRL: digite números → “12,34” ====== */
+/* ====== Máscara: só números → “12,34” ====== */
 function centsToBR(vCents){
   const neg = vCents < 0;
   vCents = Math.abs(vCents);
-  const s = vCents.toString().padStart(3,'0'); // pelo menos 0,00
+  const s = vCents.toString().padStart(3,'0');
   const i = s.slice(0, -2) || '0';
   const d = s.slice(-2);
-  // milhar com ponto
   const iFmt = i.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   return (neg?'-':'') + iFmt + ',' + d;
 }
 function moneyBindInputs(){
   document.querySelectorAll('input.money').forEach(inp=>{
-    // guarda centavos internamente; mostra 0,00
+    inp.type = "text";                // evita validações de pattern
+    inp.inputMode = "decimal";        // teclado decimal no mobile
+    inp.autocomplete = "off";
+    inp.spellcheck = false;
+
     inp.dataset.cents = inp.dataset.cents || "0";
     inp.value = centsToBR(parseInt(inp.dataset.cents,10)||0);
 
     inp.addEventListener('input', ()=>{
-      // mantém apenas dígitos (centavos automáticos)
+      // aceita numpad, vírgula, ponto… mas mantemos só dígitos (centavos)
       const digits = (inp.value.replace(/\D/g,'') || "0").replace(/^0+(?=\d)/,'');
       const cents = parseInt(digits,10) || 0;
       inp.dataset.cents = String(cents);
       inp.value = centsToBR(cents);
     });
-
-    // ao focar, seleciona tudo (facilita digitação)
     inp.addEventListener('focus', ()=>{ setTimeout(()=>inp.select(), 0); });
   });
 }
-// Converte para string decimal com ponto para o back (ex.: "12.34")
 function centsToDotDecimal(cents){
   const v = (parseInt(cents,10)||0)/100;
   return v.toFixed(2);
 }
 
-/* ============== Expiração & Histórico ============== */
+/* ====== Janela local / expiração ====== */
 function setOpenTimeIfMissing(){
   const k = keyBase + ":openTs";
   let ts = lsGet(k, null);
   if(!ts){ ts = Date.now(); lsSet(k, ts); }
   abriuEm = ts;
 }
-function isExpiredLocal(){
-  if(!abriuEm) return false;
-  return (Date.now() - abriuEm) > VALIDADE_MS;
-}
+function isExpiredLocal(){ return abriuEm ? (Date.now() - abriuEm) > VALIDADE_MS : false; }
 function renderCountdown(){
   const el = document.getElementById('timer');
   if(!abriuEm){ el.style.display='none'; return; }
@@ -176,6 +174,28 @@ function onExpiredUI(){
   disableForm(true);
   document.getElementById('btnSolicitarLiberacao').style.display = 'inline-block';
 }
+
+/* ====== Liberação servidor ====== */
+async function checkServerLiberation(){
+  try{
+    const url = `${URL_COTACAO}?action=checar_liberacao&empresa=${encodeURIComponent(empresa)}&fornecedor=${encodeURIComponent(fornecedor)}&painel=${encodeURIComponent(painel)}`;
+    const r = await fetch(url);
+    const j = await r.json();
+    return !!(j && j.ok && j.liberado);
+  }catch{ return false; }
+}
+async function ensureAuthorized(){
+  if(!isExpiredLocal()) return true; // ainda na 1ª hora
+  const ok = await checkServerLiberation();
+  if(!ok){ onExpiredUI(); return false; }
+  document.getElementById('avisoExpirado').style.display = 'none';
+  disableForm(false);
+  document.getElementById('btnSolicitarLiberacao').style.display = 'none';
+  document.getElementById('timer').style.display = 'none';
+  return true;
+}
+
+/* ====== Histórico / bloqueio duplicado ====== */
 function blockIfAlreadySent(){
   const sent = lsGet(keyBase + ":sent", null);
   if(sent && sent.fornecedor === fornecedor){
@@ -194,30 +214,6 @@ function pushHistory(enviados){
   lsSet(k, arr);
 }
 
-/* ============== Autorização do painel ============== */
-async function checkServerLiberation(){
-  try{
-    const url = `${URL_COTACAO}?action=checar_liberacao&empresa=${encodeURIComponent(empresa)}&fornecedor=${encodeURIComponent(fornecedor)}&painel=${encodeURIComponent(painel)}`;
-    const r = await fetch(url);
-    const j = await r.json();
-    return !!(j && j.ok && j.liberado);
-  }catch{ return false; }
-}
-async function ensureAuthorized(){
-  // 1) dentro da 1ª hora? ok
-  if(!isExpiredLocal()) return true;
-  // 2) senão, checa liberação do painel
-  const ok = await checkServerLiberation();
-  if(!ok){ onExpiredUI(); return false; }
-  // liberado via painel → desbloqueia form; oculta aviso
-  document.getElementById('avisoExpirado').style.display = 'none';
-  disableForm(false);
-  document.getElementById('btnSolicitarLiberacao').style.display = 'none';
-  // Timer da 1ª janela já acabou — não mostramos contagem agora (sem horário de expiração do painel)
-  document.getElementById('timer').style.display = 'none';
-  return true;
-}
-
 /* =================== Carregamento =================== */
 window.addEventListener('load', async ()=>{
   const p = new URLSearchParams(location.search);
@@ -225,25 +221,19 @@ window.addEventListener('load', async ()=>{
   painel  = p.get("painel")  || "";
   const fornecedorUrl = p.get("fornecedor") || "";
 
-  // Monta chave base (inclui painel para granularidade)
   fornecedor = fornecedorUrl || "";
   keyBase = `cotacao:${empresa}:${fornecedor}:${painel}`;
 
   await carregarListaFornecedores(fornecedorUrl);
   document.getElementById('titulo').textContent = `Responder Cotação – ${fornecedor || '(selecione)'}`;
 
-  // Define/recupera hora de abertura e contador
   setOpenTimeIfMissing();
   startCountdown();
 
-  // Se já enviou, bloqueia
   if(blockIfAlreadySent()) return;
-
-  // Autoriza (janela local ou liberação do painel)
   const autorizado = await ensureAuthorized();
   if(!autorizado) return;
 
-  // Carrega itens (status = COMPRAR)
   await carregarItens();
 });
 
@@ -283,6 +273,8 @@ async function carregarListaFornecedores(pref){
       document.getElementById('statusEnvio').style.display = 'none';
       disableForm(false);
       blockIfAlreadySent();
+      // limpa badge ao trocar fornecedor
+      document.getElementById('badgeLogin').style.display = 'none';
     });
   }catch(e){
     alert("Erro ao carregar fornecedores: "+e.message);
@@ -315,18 +307,18 @@ function renderTabela(){
       <td>${it.quantidade ?? ''}</td>
       <td>${it.unidade ?? ''}</td>
       <td>
-        <input type="tel" class="money" inputmode="numeric" pattern="[0-9]*"
-               placeholder="0,00"
+        <input class="money" placeholder="0,00"
+               inputmode="decimal" autocomplete="off"
                data-rid="${it.rid}" data-codigo="${it.codigo || ''}" data-produto="${it.produto}">
       </td>
-      <td><input type="text" class="obs" placeholder="Observação"></td>
+      <td><input type="text" class="obs" placeholder="Observação" autocomplete="off"></td>
     `;
     tb.appendChild(tr);
   });
   moneyBindInputs();
 }
 
-/* ============ Validação de fornecedor (senha) ============ */
+/* ============ Validação (mostra “empresa logada”) ============ */
 async function validarFornecedor(){
   const senha = (document.getElementById('inputSenha').value || '').trim();
   if(!fornecedor){ alert("Selecione o fornecedor."); return false; }
@@ -338,7 +330,12 @@ async function validarFornecedor(){
       body: JSON.stringify({ action:"validar_fornecedor", fornecedor, senha })
     });
     const out = await res.json();
-    if(out && out.ok) return true;
+    if(out && out.ok){
+      const badge = document.getElementById('badgeLogin');
+      badge.textContent = `✅ Logado como ${fornecedor} | Empresa: ${empresa || '—'}`;
+      badge.style.display = 'inline-flex';
+      return true;
+    }
     alert("Senha inválida para o fornecedor selecionado.");
     return false;
   }catch(e){
@@ -348,7 +345,10 @@ async function validarFornecedor(){
 }
 document.getElementById('btnValidar').addEventListener('click', async ()=>{
   const ok = await validarFornecedor();
-  if(ok) alert("✅ Fornecedor validado com sucesso.");
+  if(ok) {/* badge já é mostrado na função */}
+});
+document.getElementById('inputSenha').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('btnValidar').click(); }
 });
 
 /* =================== Solicitar liberação =================== */
@@ -372,15 +372,12 @@ document.getElementById('btnSolicitarLiberacao').addEventListener('click', async
 document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
   e.preventDefault();
 
-  // Checa autorização (janela local ou liberação ativa)
   const autorizado = await ensureAuthorized();
   if(!autorizado) return;
 
-  // Confere senha/fornecedor
   const okSenha = await validarFornecedor();
   if(!okSenha) return;
 
-  // Já enviou?
   if(blockIfAlreadySent()) return;
 
   const linhas = document.querySelectorAll('#tbody tr');
@@ -394,7 +391,6 @@ document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
     const cents   = priceEl.dataset.cents || "0";
     const obs     = ln.querySelector('input.obs').value || "";
 
-    // envia somente se houve preço informado (> 0 centavos)
     if(parseInt(cents,10) <= 0) continue;
 
     const payload = {
@@ -404,7 +400,7 @@ document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
       produtoNome: priceEl.dataset.produto,
       fornecedor,
       senha: (document.getElementById('inputSenha').value || '').trim(),
-      preco: centsToDotDecimal(cents), // "12.34"
+      preco: centsToDotDecimal(cents),
       observacoes: obs,
       empresa,
       painelCodigo: painel
@@ -431,7 +427,6 @@ document.getElementById('formRespostas').addEventListener('submit', async (e)=>{
     return;
   }
 
-  // Marca como enviado e registra histórico
   lsSet(keyBase + ":sent", { ts: Date.now(), fornecedor });
   pushHistory(enviados);
 
