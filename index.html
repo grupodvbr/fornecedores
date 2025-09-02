@@ -55,9 +55,9 @@ window.onload = async () => {
 
 async function carregarItens() {
   try {
-    const res = await fetch(`${URL_COTACAO}?action=itenspendentes&empresa=${encodeURIComponent(empresa)}&painel=${encodeURIComponent(painel)}`);
+    const res = await fetch(`${URL_COTACAO}?action=listar_fornecedores&empresa=${encodeURIComponent(empresa)}&painel=${encodeURIComponent(painel)}`);
     const out = await res.json();
-    if (!out.ok || !out.items.length) {
+    if (!out.ok || !out.items || !out.items.length) {
       document.getElementById("info").innerHTML = "✅ Nenhuma cotação pendente.";
       return;
     }
@@ -97,7 +97,7 @@ document.getElementById("formRespostas").onsubmit = async (e) => {
     if (!preco) continue;
 
     const payload = {
-      action: "enviar_resposta",
+      action: "responder_fornecedor",  // 🔹 corrigido para bater com o GAS
       rid: input.dataset.rid,
       produtoCodigo: input.dataset.codigo,
       produtoNome: input.dataset.produto,
