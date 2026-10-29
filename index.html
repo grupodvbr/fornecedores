@@ -165,7 +165,7 @@
 
 <script>
 /* ===== CONFIG ===== */
-const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzjA0wxQDANQERLWRy3gXhWoL30nnVBWO8v5x7L-ktFkgtQYl9m4WncYRPFUqR3hkjw/exec";
+const URL_COTACAO = "https://script.google.com/macros/s/AKfycbzjA0wxQDANQERLWRy3gXhWoL30nnVBWO8v5x7L-ktFkgtQYl9m4WncYRPFUqR3hkjw/exec";\nconst URL_CONCORRENCIA = "https://reservas-mercatto.vercel.app/api/cotacoes/notificar-concorrencia";
 const VALIDADE_MS = 60*60*1000;
 
 /* ===== Estado ===== */
@@ -482,6 +482,26 @@ function wireEnviarButtons(){
         `✅ ${out.count || itensPayload.length} respostas registradas por <b>${fornecedor}</b> em <b>${fmtData(Date.now())}</b>.`;
       disableSendButtons(true);
       renderHistory();
+
+      // O lance ja foi salvo. A concorrencia e calculada no backend do Otto
+      // relendo o Supabase; falha nesta notificacao nunca invalida o lance.
+      try{
+        const concorrencia = await fetch(URL_CONCORRENCIA,{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            empresa,
+            fornecedor,
+            produtos:itensPayload.map(x=>x.produto)
+          })
+        });
+        if(!concorrencia.ok){
+          const detalhe = await concorrencia.json().catch(()=>({}));
+          console.warn('Concorrencia nao processada:', detalhe?.erro || concorrencia.status);
+        }
+      }catch(errConcorrencia){
+        console.warn('Falha ao acionar concorrencia:', errConcorrencia);
+      }
     }catch(e){
       showOverlay(false);
       alert('Erro ao enviar: ' + e.message);
